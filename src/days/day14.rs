@@ -24,7 +24,7 @@ pub fn solve(input: &str) -> Solution {
             let address = line[4..i].parse::<u64>().unwrap();
             let value = line[(i+4)..].parse::<u64>().unwrap();
 
-            let p1_value = current_mask.iter().rev().enumerate().fold(value, |value, (i, c)| {
+            let p1_value = current_mask.iter().enumerate().fold(value, |value, (i, c)| {
                 if *c != UNTOUCHED {
                     (value - (value & (1 << i))) + ((if *c == '1' as u8 { 1 } else { 0 }) << i)
                 } else {
