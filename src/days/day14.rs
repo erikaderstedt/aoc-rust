@@ -1,102 +1,59 @@
 use crate::common::Solution;
-use std::str::FromStr;
-use crate::common::parsed_from_each_line;
-use regex::Regex;
-use itertools::Itertools;
 use std::collections::HashMap;
 
-#[derive(Clone,Debug,PartialEq)]
-enum Mask {
-    Overwrite(bool),
-    LeaveUnchanged,
-    Floating(bool),
-}
-
-impl Mask {
-
-    fn from_char(c: &char) -> Option<Mask> {
-        match c {
-            '0' => Some(Mask::Overwrite(false)),
-            '1' => Some(Mask::Overwrite(true)),
-            'X' => Some(Mask::LeaveUnchanged),
-            _ => None,
-        }
-    }
-}
-
-fn update_value_with_mask(v: &u64, mask: &Vec<Mask>) -> u64 {
-    let mut m2 = v.clone();
-    for (i, m) in mask.iter().enumerate() {
-        match m {
-            Mask::Overwrite(d) => m2 = m2 - (m2 & (1 << i)) + ((if *d { 1 } else { 0 }) << i),
-            Mask::LeaveUnchanged => {},
-            Mask::Floating(_) => panic!(""),
-        }
-    }
-    m2
-}
-
-fn update_value_with_mask2(v: &u64, mask: &Vec<Mask>) -> u64 {
-    let mut m2 = v.clone();
-    for (i, m) in mask.iter().enumerate() {
-        match m {
-            Mask::Overwrite(true) => m2 = m2 - (m2 & (1 << i)) + (1 << i),
-            Mask::Overwrite(false) => {},
-            Mask::Floating(d) => m2 = m2 - (m2 & (1 << i)) + ((if *d { 1 } else { 0 }) << i),
-            Mask::LeaveUnchanged => panic!("asdfads")
-        }
-    }
-    m2
-}
-
+const UNTOUCHED: u8 = 'X' as u8;
+const FLOATING: u8 = 'X' as u8;
+const FLOATING_SET_TO_1: u8 = '2' as u8;
+const FLOATING_SET_TO_0: u8 = '3' as u8;
 
 pub fn solve(input: &str) -> Solution {
-    let r = Regex::new(r"^mask = ([01X]+)$").expect("d");
-    let r2 = Regex::new(r"^mem\[(\d+)\] = (\d+)$").expect("d2");
-    let mut current_mask: Vec<Mask> = Vec::new();
-    let mut mem_space: HashMap<u64,u64> = HashMap::new();
+    let mut current_mask: Vec<u8> = Vec::new();
+    let mut mem_space_p1: HashMap<u64,u64> = HashMap::new();
     let mut mem_space_p2: HashMap<u64,u64> = HashMap::new();
+    let mut x_locations: Vec<usize> = Vec::new();
 
     for line in input.lines() {
-        match r.captures_iter(line).next() {
-            Some(cap) => current_mask = cap[1].chars().map(|c| Mask::from_char(&c).expect("msg: &str")).rev().collect(),
-            None => match r2.captures_iter(line).next() {
-                Some(cap) => {
-                    let address = cap[1].parse::<u64>().expect(" 3");
-                    let value = cap[2].parse::<u64>().expect(" 1");
+        if line.starts_with("mask") {
+            current_mask = line[7..].as_bytes().iter().rev().cloned().collect();
+            x_locations = current_mask.iter()
+                .enumerate()
+                .filter_map(|(i,c)| match *c { FLOATING => Some(i), _ => None })
+                .collect();
+        } else {
+            let i = line.find(']').unwrap();
+            let address = line[4..i].parse::<u64>().unwrap();
+            let value = line[(i+4)..].parse::<u64>().unwrap();
 
-                    let m2 = update_value_with_mask(&value, &current_mask);
-                    let m1 = address.clone();
-                    // let initial = match mem_space.get(&m1) {
-                    //     Some(v) => v.clone(),
-                    //     None => 0u64,
-                    // };                    
+            let p1_value = current_mask.iter().rev().enumerate().fold(value, |value, (i, c)| {
+                if *c != UNTOUCHED {
+                    (value - (value & (1 << i))) + ((if *c == '1' as u8 { 1 } else { 0 }) << i)
+                } else {
+                    value
+                }
+            });
+            mem_space_p1.insert(address, p1_value);
 
-
-                    mem_space.insert(m1, m2);
-                    let x_locations: Vec<usize> = current_mask.iter().enumerate().filter_map(|(i,m)| match m {
-                        Mask::LeaveUnchanged => Some(i),
-                        _ => None }).collect();
-                    let num_x = x_locations.len();
-                    let num_mems = 1 << num_x;
-                    for i in 0..num_mems {
-                        let mut mask = current_mask.clone();
-                        for j in 0..num_x {
-                            mask[x_locations[j]] = Mask::Floating(i & (1 << j) > 0);
-                        }
-//                        println!("{:?}", mask[0..8].to_vec());
-                        let m3 = update_value_with_mask2(&address, &mask);
-//                        println!("{} {} {}", value, address,m3);
-                        mem_space_p2.insert(m3, value);
+            let number_of_x = x_locations.len();
+            let number_of_addresses = 1 << number_of_x;
+            let mut edited_mask = current_mask.clone();
+            for address_index in 0..number_of_addresses {
+                for j in x_locations.iter() {
+                    edited_mask[*j] = if address_index & (1 << j) > 0 { FLOATING_SET_TO_1 } else { FLOATING_SET_TO_0 }                    
+                }
+                let p2_address = edited_mask.iter().enumerate().fold(address, |address, (i,c)| {
+                    if *c == '0' as u8 { 
+                        address 
+                    } else {
+                        (address - (address & (1 << i))) + ((if *c == FLOATING_SET_TO_0 { 0 } else { 1 }) << i)
                     }
-                },
-                None => panic!("unknown line"),
+                });
+               mem_space_p2.insert(p2_address, value);
             }
         }
     }
-    let p1:u64 = mem_space.values().sum();
+
+    let p1:u64 = mem_space_p1.values().sum();
     let p2:u64 = mem_space_p2.values().sum();
 
-    
     Solution { part_1: p1.to_string(), part_2: p2.to_string() }
 }
