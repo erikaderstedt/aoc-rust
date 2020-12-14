@@ -11,7 +11,7 @@ pub fn solve(input: &str) -> Solution {
     let mut mem_space_p1: HashMap<u64,u64> = HashMap::new();
     let mut mem_space_p2: HashMap<u64,u64> = HashMap::new();
     let mut x_locations: Vec<usize> = Vec::new();
-
+    
     for line in input.lines() {
         if line.starts_with("mask") {
             current_mask = line[7..].as_bytes().iter().rev().cloned().collect();
@@ -33,12 +33,13 @@ pub fn solve(input: &str) -> Solution {
             });
             mem_space_p1.insert(address, p1_value);
 
+            
             let number_of_x = x_locations.len();
             let number_of_addresses = 1 << number_of_x;
             let mut edited_mask = current_mask.clone();
             for address_index in 0..number_of_addresses {
-                for j in x_locations.iter() {
-                    edited_mask[*j] = if address_index & (1 << j) > 0 { FLOATING_SET_TO_1 } else { FLOATING_SET_TO_0 }                    
+                for j in 0..number_of_x {
+                    edited_mask[x_locations[j]] = if address_index & (1 << j) > 0 { FLOATING_SET_TO_1 } else { FLOATING_SET_TO_0 }                    
                 }
                 let p2_address = edited_mask.iter().enumerate().fold(address, |address, (i,c)| {
                     if *c == '0' as u8 { 
