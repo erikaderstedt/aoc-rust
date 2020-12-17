@@ -16,6 +16,9 @@ use crate::crate_info::crate_description;
 use crate::crate_info::crate_name;
 use crate::crate_info::crate_version;
 
+#[macro_use]
+extern crate itertools;
+
 fn main() -> Result<(), std::io::Error> {
     let cli = App::new(crate_name())
     .version(crate_version())
