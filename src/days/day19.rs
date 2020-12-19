@@ -2,6 +2,7 @@ use crate::common::Solution;
 use itertools::Itertools;
 use std::collections::HashMap;
 
+
 enum Rule {
     Character(u8),
     Single(Vec<usize>),
@@ -27,6 +28,14 @@ impl std::str::FromStr for Rule {
 type RulesList = HashMap<usize,Rule>;
 
 impl Rule {
+
+    fn process_indices<'a>(rule_indices: &Vec<usize>, rules: &RulesList, s: &'a [u8]) -> Vec<&'a [u8]> {
+        rule_indices.iter().fold(vec![s], |acc, rule_index| {
+            acc.into_iter().map(|r| {
+                rules[rule_index].matches(rules, r)
+            }).flatten().collect()
+        })
+    }
     // Returns the possible different remaining strings after matching this rule.
     fn matches<'a>(&self, rules: &RulesList, s: &'a [u8]) -> Vec<&'a [u8]> {
         match self {
@@ -34,26 +43,12 @@ impl Rule {
                 Some(c1) if c == c1 => { vec![&s[1..]] }
                 _ => vec![],
             },
-            Rule::Single(rule_indices) => {
-                rule_indices.iter().fold(vec![s], |acc, rule_index| {
-                    acc.into_iter().map(|r| {
-                        rules[rule_index].matches(rules, r)
-                    }).flatten().collect()
-                })
-            },
+            Rule::Single(rule_indices) => Rule::process_indices(rule_indices, rules, s),
             Rule::Multiple((left, right)) => {
-                left.iter().fold(vec![s], |acc, rule_index| {
-                    acc.into_iter().map(|r| {
-                        rules[rule_index].matches(rules, r)
-                    }).flatten().collect()
-                }).into_iter().chain(
-                right.iter().fold(vec![s], |acc, rule_index| {
-                    acc.into_iter().map(|r| {
-                        rules[rule_index].matches(rules, r)
-                    }).flatten().collect()
-                }).into_iter())
-                .collect()
-            }
+                let mut r1 = Rule::process_indices(left, rules, s);
+                r1.extend(Rule::process_indices(right, rules, s));
+                r1
+            },
         }
     }
 }
