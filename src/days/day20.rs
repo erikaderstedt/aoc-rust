@@ -9,11 +9,18 @@ const HASH: u8 = '#' as u8;
 
 enum Edge { Top, Bottom,Left,Right }
 
-#[derive(Clone,PartialEq,Eq)]
+#[derive(Clone,Eq)]
 struct Tile {
     index: usize,
     variant: usize,
-    data: [[bool;10];10],
+    data: [[bool;TILE_SIDE];TILE_SIDE],
+}
+
+impl PartialEq for Tile {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index &&
+        self.variant == other.variant
+    }
 }
 
 impl Hash for Tile {
@@ -90,11 +97,17 @@ impl fmt::Display for Tile {
     }
 }
 
-#[derive(Clone,PartialEq,Eq)]
+#[derive(Clone,Eq)]
 struct State {
     remaining_tiles: Vec<Tile>,
     side: usize,
     grid: Vec<Tile>,
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.grid == other.grid
+    }
 }
 
 impl Hash for State {
@@ -209,7 +222,6 @@ fn sea_roughness(grid:&Pixels, num_sea_monsters: &usize) -> usize {
 
 pub fn solve(input: &str) -> Solution {
     let tiles: Vec<Tile> = input.split("Tile ").skip(1).map(|s| Tile::from_str(s)).collect();
-    println!("{}", tiles.len());
 
     let result = bfs(&State::from_tiles(tiles), State::successors, State::all_laid_out).expect("No solution pt 1");
     let final_state = &result[result.len() - 1];
