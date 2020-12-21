@@ -19,14 +19,14 @@ pub mod day18;
 pub mod day19;
 pub mod day20;
 pub mod day21;
-// pub mod day22;
+pub mod day22;
 // pub mod day23;
 // pub mod day24;
 // pub mod day25;
 
-pub fn all_numbers() -> Vec<u8> {
-    (1..=25).filter(|&day| get_solver(day).is_some()).collect()
-}
+// pub fn all_numbers() -> Vec<u8> {
+//     (1..=25).filter(|&day| get_solver(day).is_some()).collect()
+// }
 
 pub fn get_solver(day: u8) -> Option<crate::common::Solver> {
     match day {
@@ -51,7 +51,7 @@ pub fn get_solver(day: u8) -> Option<crate::common::Solver> {
         19 => Some(day19::solve),
         20 => Some(day20::solve),
         21 => Some(day21::solve),
-        // 22 => Some(day22::solve),
+        22 => Some(day22::solve),
         //23 => Some(day23::solve),
         // 24 => Some(day24::solve),
         // 25 => Some(day25::solve),

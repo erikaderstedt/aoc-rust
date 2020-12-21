@@ -17,9 +17,10 @@ impl Solution {
 
 pub type Solver = fn(&str) -> crate::common::Solution;
 
-pub fn day_input_filename(day: u8) -> PathBuf {
+pub fn day_input_filename(year: &str, day_s: &str) -> PathBuf {
+    let day = day_s.parse::<u8>().unwrap();
     let padded_day = format!("{:02}", day);
-    Path::new("inputs").join(format!("day{}.in", padded_day))
+    Path::new("inputs").join(year).join(format!("day{}.in", padded_day))
 }
 
 pub fn get_file_contents(path: &Path) -> std::io::Result<String> {
