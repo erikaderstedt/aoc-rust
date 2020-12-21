@@ -54,8 +54,8 @@ pub fn solve(input: &str) -> Solution {
         .sum::<usize>();
         
     known_allergens.sort_by(|a,b| a.0.cmp(&b.0));
-    let safe_ingredients:Vec<&str> = known_allergens.into_iter().map(|(_,i)| i).collect();
-    let p2 = safe_ingredients[..].join(",");
+    let dangerous_ingredients:Vec<&str> = known_allergens.into_iter().map(|(_,i)| i).collect();
+    let p2 = dangerous_ingredients[..].join(",");
 
     Solution { part_1: p1.to_string(), part_2: p2.to_string() }
 }
