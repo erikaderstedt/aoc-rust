@@ -1,5 +1,6 @@
 use crate::common::Solution;
-use std::collections::HashSet;
+use itertools::Itertools;
+use std::collections::{HashSet,BTreeMap};
 
 struct Food<'a> {
     ingredients: HashSet<&'a str>,
@@ -9,18 +10,18 @@ struct Food<'a> {
 impl<'a> Food<'a> {
     fn parse(s: &'a str) -> Food {
         let i = s.find('(').unwrap();
-        let ingredients: HashSet<&'a str> = s[..(i-1)].split(' ').collect();
-        let allergens: HashSet<&'a str> = s[(i+10)..(s.len()-1)].split(", ").collect();
-        Food { ingredients, allergens }
+        Food { 
+            ingredients: s[..(i-1)].split(' ').collect(), 
+            allergens: s[(i+10)..(s.len()-1)].split(", ").collect() 
+        }
     }
 }
 
 pub fn solve(input: &str) -> Solution {
     let foods: Vec<Food> = input.lines().map(|s| Food::parse(s)).collect();
-    let all_allergens: HashSet<&str> = foods.iter().map(|f| f.allergens.iter()).flatten().cloned().collect();
 
-    let mut known_allergens: Vec<(&str,&str)> = Vec::new();
-    let mut unknown_allergens = all_allergens.clone();
+    let mut unknown_allergens: HashSet<&str> = foods.iter().map(|f| f.allergens.iter()).flatten().cloned().collect();
+    let mut known_allergens: BTreeMap<&str,&str> = BTreeMap::new();
     let mut matched_ingredients: HashSet<&str> = HashSet::new();
     
     while unknown_allergens.len() > 0 {
@@ -36,7 +37,7 @@ pub fn solve(input: &str) -> Solution {
                 .collect();
             
             if candidate_ingredients.len() == 1 {
-                known_allergens.push((u, candidate_ingredients[0]));
+                known_allergens.insert(u, candidate_ingredients[0]);
                 matched_ingredients.insert(candidate_ingredients[0]);
                 false
             } else {
@@ -50,9 +51,7 @@ pub fn solve(input: &str) -> Solution {
             .count())
         .sum::<usize>();
         
-    known_allergens.sort_by(|a,b| a.0.cmp(&b.0));
-    let dangerous_ingredients:Vec<&str> = known_allergens.into_iter().map(|(_,i)| i).collect();
-    let p2 = dangerous_ingredients[..].join(",");
+    let p2 = known_allergens.values().join(",");
 
     Solution::new(p1,p2)
 }
