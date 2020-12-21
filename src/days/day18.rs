@@ -67,5 +67,5 @@ pub fn solve(input: &str) -> Solution {
     let p1 = input.lines().map(|line| evaluate_p1(&mut line.as_bytes())).sum::<i64>();
     let p2 = input.lines().map(|line| evaluate_p2(&mut line.as_bytes())).sum::<i64>();
     
-    Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    Solution::new(p1,p2)
 }

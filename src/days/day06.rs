@@ -14,5 +14,5 @@ pub fn solve(input: &str) -> Solution {
         .map(|group| group.lines().fold((1<<26)-1, |a, s| a & answers_in_string(s)).count_ones())
         .sum();
      
-    Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    Solution::new(p1,p2)
 }

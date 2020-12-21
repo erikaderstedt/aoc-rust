@@ -9,6 +9,14 @@ pub struct Solution {
     pub part_2: String,
 }
 
+impl Solution {
+    pub fn new(p1: impl ToString, p2: impl ToString) -> Solution {
+        Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    }
+}
+
+pub type Solver = fn(&str) -> crate::common::Solution;
+
 pub fn day_input_filename(day: u8) -> PathBuf {
     let padded_day = format!("{:02}", day);
     Path::new("inputs").join(format!("day{}.in", padded_day))

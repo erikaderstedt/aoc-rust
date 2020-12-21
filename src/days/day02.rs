@@ -22,8 +22,5 @@ pub fn solve(input: &str) -> Solution {
         }
     }
 
-    Solution { 
-        part_1: num_valid_according_to_old_policy.to_string(), 
-        part_2: num_valid_according_to_new_policy.to_string() 
-    }
+    Solution::new(num_valid_according_to_old_policy, num_valid_according_to_new_policy)
 }

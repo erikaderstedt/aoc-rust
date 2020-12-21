@@ -1,8 +1,7 @@
 use crate::common::Solution;
-
 use std::collections::HashSet;
 
-type Coordinate = (i32,i32,i32,i32);
+type Coordinate = (i8,i8,i8,i8);
 
 fn perform_boot_cycle(initial_active_locations: &HashSet<Coordinate>, neighbors: &Vec<Coordinate>) -> usize {
     let mut active_locations = initial_active_locations.clone();
@@ -35,7 +34,7 @@ pub fn solve(input: &str) -> Solution {
     let initial_active_locations: HashSet<Coordinate> = input.lines()
         .enumerate()
         .map(|(y, line)| {
-            line.chars().enumerate().filter(|(_,c)| *c == '#').map(move |(x,_)| (x as i32,y as i32,0i32,0i32))
+            line.chars().enumerate().filter(|(_,c)| *c == '#').map(move |(x,_)| (x as i8,y as i8,0i8,0i8))
         })
         .flatten()
         .collect();
@@ -50,5 +49,5 @@ pub fn solve(input: &str) -> Solution {
     let p1 = perform_boot_cycle(&initial_active_locations, &p1_neighbors);
     let p2 = perform_boot_cycle(&initial_active_locations, &p2_neighbors);
 
-    Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    Solution::new(p1,p2)
 }

@@ -40,5 +40,5 @@ pub fn solve(input: &str) -> Solution {
     
     let p2: usize = num_trees.iter().product();
     
-    Solution { part_1: num_trees[1].to_string(), part_2: p2.to_string() }
+    Solution::new(num_trees[1], p2)
 }

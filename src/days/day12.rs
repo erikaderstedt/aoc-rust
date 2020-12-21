@@ -90,5 +90,5 @@ pub fn solve(input: &str) -> Solution {
     });
     let p2 = _p2.0.abs() + _p2.1.abs();
     
-    Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    Solution::new(p1,p2)
 }

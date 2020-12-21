@@ -82,5 +82,5 @@ pub fn solve(input: &str) -> Solution {
     let p1 = num_occupied_at_steady_state(&locations, connectedness_pt1, 4);
     let p2 = num_occupied_at_steady_state(&locations, connectedness_pt2, 5);
     
-    Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    Solution::new(p1,p2)
 }

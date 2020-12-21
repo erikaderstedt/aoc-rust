@@ -44,8 +44,5 @@ pub fn solve(input: &str) -> Solution {
         })
         .count();
 
-    Solution { 
-        part_1: passports_with_all_required_fields.len().to_string(), 
-        part_2: number_of_valid_passports.to_string() 
-    }
+    Solution::new(passports_with_all_required_fields.len(), number_of_valid_passports)
 }

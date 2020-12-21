@@ -57,5 +57,5 @@ pub fn solve(input: &str) -> Solution {
             accumulator_value
         }).unwrap();
 
-    Solution { part_1: p1.to_string(), part_2: p2.to_string() }
+    Solution::new(p1,p2)
 }
