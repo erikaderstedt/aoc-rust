@@ -24,7 +24,7 @@ pub fn solve(input: &str) -> Solution {
     let mut matched_ingredients: HashSet<&str> = HashSet::new();
     
     while unknown_allergens.len() > 0 {
-        unknown_allergens = unknown_allergens.clone().into_iter().filter(|u| {
+        unknown_allergens = unknown_allergens.into_iter().filter(|u| {
             // Take the intersection of the ingredients list where this allergen occurs
             let foods_with_this_allergen: Vec<&Food> = foods.iter().filter(|f| f.allergens.contains(u)).collect();
             assert!(foods_with_this_allergen.len() > 0);
@@ -37,15 +37,12 @@ pub fn solve(input: &str) -> Solution {
             
             if candidate_ingredients.len() == 1 {
                 known_allergens.push((u, candidate_ingredients[0]));
-                unknown_allergens.remove(u);
                 matched_ingredients.insert(candidate_ingredients[0]);
                 false
             } else {
                 true
             }
-        })
-        
-        .collect();
+        }).collect();
     }
     let p1 = foods.iter()
         .map(|food| food.ingredients
