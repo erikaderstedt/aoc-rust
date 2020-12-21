@@ -1,61 +1,61 @@
 use crate::common::Solution;
-use std::collections::{HashSet, HashMap};
-use regex::Regex;
+use std::collections::HashSet;
 
-#[derive(Debug,Clone)]
-struct Food {
-    ingredients: HashSet<String>,
-    allergens: HashSet<String>,
+struct Food<'a> {
+    ingredients: HashSet<&'a str>,
+    allergens: HashSet<&'a str>,
+}
+
+impl<'a> Food<'a> {
+    fn parse(s: &'a str) -> Food {
+        let i = s.find('(').unwrap();
+        let ingredients: HashSet<&'a str> = s[..(i-1)].split(' ').collect();
+        let allergens: HashSet<&'a str> = s[(i+10)..(s.len()-1)].split(", ").collect();
+        Food { ingredients, allergens }
+    }
 }
 
 pub fn solve(input: &str) -> Solution {
-    let food_r = Regex::new(r"^([a-z, ]+) \(contains ([a-z, ]+)\)$").expect("Bad");
+    let foods: Vec<Food> = input.lines().map(|s| Food::parse(s)).collect();
+    let all_allergens: HashSet<&str> = foods.iter().map(|f| f.allergens.iter()).flatten().cloned().collect();
 
-    let foods: Vec<Food> = input.lines().map(|line| {
-        let cap = food_r.captures_iter(line).next().unwrap();
-        let ingredients: HashSet<String> = cap[1].split(' ').map(|x| x.to_string()).collect();
-        let allergens: HashSet<String> = cap[2].split(", ").map(|x| x.to_string()).collect();
-        Food { ingredients, allergens}
-    }).collect();
-
-    // Get all allergens
-    let all_allergens:HashSet<String> = foods.iter().map(|food|
-
-        food.allergens.iter().cloned()
-    ).flatten().collect();
-
+    let mut known_allergens: Vec<(&str,&str)> = Vec::new();
     let mut unknown_allergens = all_allergens.clone();
-    let mut known_allergens: HashMap<String,String> = HashMap::new();
-
-    let mut analyzed_foods = foods.clone();
+    let mut matched_ingredients: HashSet<&str> = HashSet::new();
+    
     while unknown_allergens.len() > 0 {
-        let c = unknown_allergens.clone();
-        let mut found = false;
-        for allergen in c.iter() {
-            let foods_with_this_allergen: Vec<&Food> = analyzed_foods.iter().filter(|food| food.allergens.contains(allergen)).collect();
+        unknown_allergens = unknown_allergens.clone().into_iter().filter(|u| {
+            // Take the intersection of the ingredients list where this allergen occurs
+            let foods_with_this_allergen: Vec<&Food> = foods.iter().filter(|f| f.allergens.contains(u)).collect();
             assert!(foods_with_this_allergen.len() > 0);
-            let first = foods_with_this_allergen[0].ingredients.clone();
-            let possibilities = foods_with_this_allergen.iter().skip(1).fold(first,|acc, f| {
-                acc.intersection(&f.ingredients).cloned().collect()
-            });
-            if possibilities.len() == 1 {
-                let ingredient = possibilities.iter().next().unwrap().clone();
-                unknown_allergens.remove(allergen);
-                for f in analyzed_foods.iter_mut() {
-                    f.ingredients.remove(&ingredient);
-                }
-                known_allergens.insert(allergen.clone(), ingredient);
-                found = true;
+            let candidate_ingredients:Vec<&str> = foods_with_this_allergen.iter()
+                .skip(1)
+                .fold(foods_with_this_allergen[0].ingredients.clone(),|i,f| i.intersection(&f.ingredients).cloned().collect())
+                .difference(&matched_ingredients)
+                .cloned()
+                .collect();
+            
+            if candidate_ingredients.len() == 1 {
+                known_allergens.push((u, candidate_ingredients[0]));
+                unknown_allergens.remove(u);
+                matched_ingredients.insert(candidate_ingredients[0]);
+                false
+            } else {
+                true
             }
-        }
-        if !found { break }
-    
+        })
+        
+        .collect();
     }
-    let p1 = analyzed_foods.iter().map(|f| f.ingredients.len()).sum::<usize>();
-    let mut k: Vec<(&String,&String)> = known_allergens.iter().collect();
-    k.sort_by(|a,b| a.0.cmp(b.0));
-    let ingredients_with_allergens: Vec<String> = k.iter().map(|(_,i)| i.clone()).cloned().collect();
-    let p2 = ingredients_with_allergens[..].join(",");
-    
+    let p1 = foods.iter()
+        .map(|food| food.ingredients
+            .difference(&matched_ingredients)
+            .count())
+        .sum::<usize>();
+        
+    known_allergens.sort_by(|a,b| a.0.cmp(&b.0));
+    let safe_ingredients:Vec<&str> = known_allergens.into_iter().map(|(_,i)| i).collect();
+    let p2 = safe_ingredients[..].join(",");
+
     Solution { part_1: p1.to_string(), part_2: p2.to_string() }
 }
