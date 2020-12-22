@@ -21,16 +21,14 @@ fn play_combat(player1: &Vec<usize>, player2: &Vec<usize>) -> usize {
             player2.push(c1);
         }
 
-        if player1.len() == 0 { return score(&player2); }
-        if player2.len() == 0 { return score(&player1); }
+        if player1.is_empty() { return score(&player2); }
+        if player2.is_empty() { return score(&player1); }
     }
 }
 
 enum Player { Player1,Player2 }
 
-fn play_recursive_combat(player1: &[usize], player2: &[usize]) -> (usize,Player) {
-    let mut player1 = player1.to_vec();
-    let mut player2 = player2.to_vec();
+fn play_recursive_combat(mut player1: Vec<usize>, mut player2: Vec<usize>) -> (usize,Player) {
     let mut previous: HashSet<u64> = HashSet::new();
     loop {
         let mut hasher = DefaultHasher::new();
@@ -41,7 +39,7 @@ fn play_recursive_combat(player1: &[usize], player2: &[usize]) -> (usize,Player)
         let c1 = player1.remove(0);
         let c2 = player2.remove(0);
         let winner = if player1.len() >= c1 && player2.len() >= c2 {
-            play_recursive_combat(&player1[..c1], &player2[..c2]).1
+            play_recursive_combat(player1[..c1].to_vec(), player2[..c2].to_vec()).1
         } else if c1 > c2 {
             Player::Player1
         } else {
@@ -58,8 +56,8 @@ fn play_recursive_combat(player1: &[usize], player2: &[usize]) -> (usize,Player)
             },
         }
 
-        if player1.len() == 0 { return (score(&player2), Player::Player2); }
-        if player2.len() == 0 { return (score(&player1), Player::Player1); }
+        if player1.is_empty() { return (score(&player2), Player::Player2); }
+        if player2.is_empty() { return (score(&player1), Player::Player1); }
     }
 }
 
@@ -68,7 +66,7 @@ pub fn solve(input: &str) -> Solution {
     let player2 :Vec<usize> = input.lines().skip_while(|&c| c != "Player 2:").skip(1).map(|l| l.parse::<usize>().unwrap()).collect();
 
     let p1 = play_combat(&player1, &player2);
-    let p2 = play_recursive_combat(&player1, &player2).0;
+    let p2 = play_recursive_combat(player1, player2).0;
     
     Solution::new(p1,p2)
 }
