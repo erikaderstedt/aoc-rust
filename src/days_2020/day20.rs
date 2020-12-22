@@ -40,6 +40,17 @@ fn create_tile_from_tiledata(index: &u64, data: &TileData) -> Tile {
     build_tile(index, 0, top, right, bottom, left)
 }
 
+fn is_starting_piece(tile: &u64, tiles: &Vec<u64>) -> bool {
+    let t = top_edge(tile);  let l = left_edge(tile);
+    let any_match_for_top_edge = tiles.iter().filter(|other| index(other) != index(tile)).any(|other| t == bottom_edge(other));
+    let any_match_for_left_edge = tiles.iter().filter(|other| index(other) != index(tile)).any(|other| l == right_edge(other));
+    let v = !any_match_for_left_edge && !any_match_for_top_edge;
+    if v {
+        println!("starting piece{} {}", index(tile), variant(tile));
+    }
+    v
+}
+
 fn tile_variants(tile: &u64) -> [Tile;8] {
     let index = index(tile);
     let l = left_edge(tile);    let rev_l = reverse(l); 
@@ -104,11 +115,17 @@ impl State {
 
     fn from_tiles(tiles: Vec<Tile>) -> State {
         let side = match tiles.len() {
-            144 => 12,
-            9 => 3,
+            1152 => 12,
+            72 => 3,
             _ => panic!("Unknown size"),
         };
-        State { remaining_tiles: tiles, side, grid: Vec::new(), }
+
+        let start = tiles.iter().find(|t| is_starting_piece(t, &tiles)).unwrap().clone();
+        let mut grid = Vec::with_capacity(tiles.len());
+        let tiles = tiles.into_iter().filter(|t| index(t) != index(&start) ).collect();
+        grid.push(start);
+        
+        State { remaining_tiles: tiles, side, grid, }
     }
 
     fn all_laid_out(&self) -> bool { self.grid.len() == self.side * self.side }
@@ -125,16 +142,12 @@ impl State {
         let above: Option<u64> = if i >= self.side { Some(bottom_edge(&self.grid[i-self.side])) } else { None };
         let left: Option<u64> = if (i % self.side) > 0 { Some(right_edge(&self.grid[i-1])) } else { None };
         self.remaining_tiles.iter()
-            .map(|t| -> Vec<Tile> {
-                tile_variants(t).iter()
-                .filter(|tile_variant| tile_fits(tile_variant, above,left)).cloned().collect()
-            })
-            .flatten()
-            .map(|pt: Tile| -> State {
-                let tile_index = index(&pt);
+            .filter(|tile| tile_fits(tile, above,left))
+            .map(|pt: &Tile| -> State {
+                let tile_index = index(pt);
                 let c:Vec<Tile> = self.remaining_tiles.iter().filter(|x| index(x) != tile_index).cloned().collect();
                 let mut g = self.grid.clone();
-                g.push(pt);
+                g.push(pt.clone());
                 State { remaining_tiles: c, side: self.side, grid: g }
             })
             .collect()
@@ -222,10 +235,11 @@ pub fn solve(input: &str) -> Solution {
         (num,[row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],])
     }).collect();
 
-    let compressed_tiles: Vec<Tile> = tiles.iter().map(|(index,data)| -> u64 {
-        create_tile_from_tiledata(index, data)
-    }).collect();
-
+    let compressed_tiles: Vec<Tile> = tiles.iter().map(|(index,data)| {
+        let tile = create_tile_from_tiledata(index, data);
+        tile_variants(&tile).to_vec()
+    }).flatten().collect();
+    
     let result = dfs(State::from_tiles(compressed_tiles), State::successors, State::all_laid_out).expect("No solution pt 1");
     let final_state = &result[result.len() - 1];
 
