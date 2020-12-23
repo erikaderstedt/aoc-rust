@@ -62,7 +62,7 @@ pub fn solve(_input: &str) -> Solution {
 
         play(&mut cups, 10_000_000, 3);
 
-        cups[1] * cups[cups[1] as usize]
+        (cups[1] as usize) * (cups[cups[1] as usize] as usize)
     };
  
     Solution { part_1: p1.to_string(), part_2: p2.to_string() }
