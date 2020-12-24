@@ -20,20 +20,14 @@ pub fn solve(input: &str) -> Solution {
     for line in input.lines() {
         let (x,y) = line.as_bytes().iter().scan(((0i32,0i32), false), |state, b| {
             let mut x = state.0.0; let mut y = state.0.1;
-            if state.1 {
-                match *b {
-                    E => { if (y % 2) == 0 { x += 1; } },
-                    W => { if (y % 2) != 0 { x -= 1; } },
-                    _ => unreachable!(),
-                }
-            } else {
-                match *b {
-                    W => x -= 1,
-                    E => x += 1,
-                    N => y += 1,
-                    S => y -= 1,
-                    _ => unreachable!(),
-                }
+            match (state.1, *b) {
+                (true, E) => { if (y % 2) == 0 { x += 1; } },
+                (true, W) => { if (y % 2) != 0 { x -= 1; } },
+                (false,W) => x -= 1,
+                (false,E) => x += 1,
+                (false,N) => y += 1,
+                (false,S) => y -= 1,
+                _ => unreachable!(),
             }
             *state = ((x,y), matches!(*b, N | S));
             Some((x,y))
