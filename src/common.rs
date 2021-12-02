@@ -31,7 +31,7 @@ pub fn get_file_contents(path: &Path) -> std::io::Result<String> {
     } else {
         read_all(
             File::open(&path)
-                .unwrap_or_else(|_| panic!(format!("Input file not found: {:?}", path))),
+                .unwrap_or_else(|_| panic!("Input file not found: {:?}", path)),
         )
     }
 }

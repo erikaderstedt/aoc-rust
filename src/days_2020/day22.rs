@@ -29,9 +29,12 @@ enum Result { Player1, Player2 }
 
 fn play_recursive_combat(player1: &mut Vec<u8>, player2: &mut Vec<u8>) -> Result {
     let mut previous: HashSet<u64> = HashSet::new();
+    let mut i = 0;
     loop {
-        let h = hash(&player1[..]) * hash(&player2[..]);
-        if !previous.insert(h) { return Result::Player1; }
+        if i & 3 == 0 {
+            let h = hash(&player1[..]) ;
+            if !previous.insert(h) { return Result::Player1; }    
+        }
         let c1 = player1.remove(0) as usize;
         let c2 = player2.remove(0) as usize;
         let result = if player1.len() >= c1 && player2.len() >= c2 {
@@ -56,6 +59,8 @@ fn play_recursive_combat(player1: &mut Vec<u8>, player2: &mut Vec<u8>) -> Result
 
         if player1.is_empty() { return Result::Player2; }
         if player2.is_empty() { return Result::Player1; }
+
+        i +=1;
     }
 }
 

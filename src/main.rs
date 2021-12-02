@@ -7,6 +7,7 @@ use clap::Arg;
 mod crate_info;
 mod days_2018;
 mod days_2020;
+mod days_2021;
 mod common;
 mod grid;
 
@@ -43,7 +44,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let years = match matches.value_of("year") {
         Some(year) => vec![year],
-        _ => vec!["2018","2020"],
+        _ => vec!["2018","2020","2021"],
     };
     let multiple_years = years.len() > 1;
 
@@ -53,12 +54,13 @@ fn main() -> Result<(), std::io::Error> {
         let solver_getter = match year {
             "2018" => days_2018::get_solver,
             "2020" => days_2020::get_solver,
+            "2021" => days_2021::get_solver,
             _ => panic!("Year not implemented!"),
         };
 
         let total_elapsed_time = match matches.value_of("day") {
             Some(day) => {
-                let solver = solver_getter(day.parse::<u8>().unwrap_or_else(|_| panic!(format!("Invalid day number: {}", day))));
+                let solver = solver_getter(day.parse::<u8>().unwrap_or_else(|_| panic!("Invalid day number: {}", day)));
                 if let Some(s) = solver {
                     run_day(&s, year, day, matches.value_of("input-file").map(Path::new))
                 } else {

@@ -2,6 +2,7 @@ use std::marker::Sized;
 use std::ops::{Index,IndexMut};
 use std::cmp::{PartialEq,Eq};
 
+
 pub trait GridElement: Sized + PartialEq + Eq + Clone {
     fn from_char(c: &char) -> Option<Self>;
     fn to_char(&self) -> char;
@@ -35,6 +36,8 @@ pub struct Position { pub row: Row, pub column: Column }
 // }
 
 impl<T: GridElement> Grid<T> {
+
+    #[allow(dead_code)]
 
     pub fn load(input: &str) -> Grid<T> {
         let cols = input.lines().next().unwrap().len();
