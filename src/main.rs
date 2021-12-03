@@ -77,7 +77,7 @@ fn main() -> Result<(), std::io::Error> {
 
 
 fn run_day(day_func: &Solver, year: &str, day: &str, input_path: Option<&Path>) -> Result<Duration, std::io::Error> {
-    print!("=== Day {: >2} ===> ", day);
+    print!("[Day {: >2}] ", day);
 
     let input = input_path
         .map(get_file_contents)
@@ -88,8 +88,8 @@ fn run_day(day_func: &Solver, year: &str, day: &str, input_path: Option<&Path>) 
     let solution = day_func(&input);
     let duration = start.elapsed();
 
-    print!("A: {: <10}\t\tB: {: <16}\t", solution.part_1,solution.part_2);
-    println!("Elapsed time: {:#?}", duration);
+    print!("A: {: <15} B: {: <50} ", solution.part_1,solution.part_2);
+    println!("Elapsed time: {:>7} µs", duration.as_micros());
 
     Ok(duration)
 }

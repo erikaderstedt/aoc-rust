@@ -44,11 +44,7 @@ fn is_starting_piece(tile: &u64, tiles: &Vec<u64>) -> bool {
     let t = top_edge(tile);  let l = left_edge(tile);
     let any_match_for_top_edge = tiles.iter().filter(|other| index(other) != index(tile)).any(|other| t == bottom_edge(other));
     let any_match_for_left_edge = tiles.iter().filter(|other| index(other) != index(tile)).any(|other| l == right_edge(other));
-    let v = !any_match_for_left_edge && !any_match_for_top_edge;
-    if v {
-        println!("starting piece{} {}", index(tile), variant(tile));
-    }
-    v
+    !any_match_for_left_edge && !any_match_for_top_edge
 }
 
 fn tile_variants(tile: &u64) -> [Tile;8] {
