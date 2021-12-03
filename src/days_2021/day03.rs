@@ -3,31 +3,26 @@
 use crate::common::Solution;
 
 fn most_common_digit_in_position(numbers: &Vec<usize>, bit_position: usize) -> usize {
-    if numbers.iter().fold(0, |t, n| t + ((n >> bit_position) & 1)) * 2 >= numbers.len() 
-    { 1 } else { 0 }
+    if numbers.iter().fold(0, |t, n| t + ((n >> bit_position) & 1)) * 2 >= numbers.len() { 1 } else { 0 }
 }
 
 fn generic_rate_calculator(numbers: &Vec<usize>, num_digits: usize, a: usize) -> usize {
-    let mut value = 0;
-    for bit_position in (0..num_digits).rev() {
-        let digit = if most_common_digit_in_position(&numbers, bit_position) == a { 1 } else { 0 };
-        value += digit << bit_position;
-    }
-    value
+    (0..num_digits).fold(0, |value, bit_position| 
+        value + if most_common_digit_in_position(&numbers, bit_position) == a { 1 << bit_position } else { 0 }
+    )
 }
 
 fn generic_rating_calculator(numbers: &Vec<usize>, num_digits: usize, a: usize) -> usize {
-    let mut l = numbers.clone();
-    for bit_position in (0..num_digits).rev() {
-        let digit_to_retain = if most_common_digit_in_position(&l, bit_position) == a { 1 } else { 0 };
-        l.retain(|v| ((v >> bit_position) & 1) == digit_to_retain);
-        if l.len() == 1 { break }
-    }
-    l[0]
+    (0..num_digits).rev().fold(numbers.clone(), |l, bit_position| {
+        if l.len() == 1 { l } else {
+            let digit_to_retain = if most_common_digit_in_position(&l, bit_position) == a { 1 } else { 0 };
+            l.into_iter().filter(|v| ((v >> bit_position) & 1) == digit_to_retain).collect()
+        }
+    })[0]
 }
 
 pub fn solve(input: &str) -> Solution {
-    let numbers= input.lines().map(|line| usize::from_str_radix(line, 2).expect("Bad number")).collect();
+    let numbers = input.lines().map(|line| usize::from_str_radix(line, 2).expect("Bad number")).collect();
     let num_digits = input.lines().next().unwrap().len();
 
     let gamma = generic_rate_calculator(&numbers, num_digits, 1);
