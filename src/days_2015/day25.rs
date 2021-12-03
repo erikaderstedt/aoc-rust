@@ -165,7 +165,7 @@ impl Program {
     }
 }
 
-pub fn solve(input: &String) -> Solution {
+pub fn solve(input: &str) -> Solution {
     let instructions = parsed_from_each_line(input);
     let mut a = 1;
 

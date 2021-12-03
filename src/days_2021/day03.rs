@@ -2,7 +2,6 @@
 
 use crate::common::Solution;
 
-// Returns 1 if there are an equal number of 0's and 1's
 fn most_common_digit_in_position(numbers: &Vec<usize>, bit_position: usize) -> usize {
     if numbers.iter().fold(0, |t, n| t + ((n >> bit_position) & 1)) * 2 >= numbers.len() { 1 } else { 0 }
 }
