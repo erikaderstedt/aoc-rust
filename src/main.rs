@@ -5,9 +5,9 @@ use clap::App;
 use clap::Arg;
 
 mod crate_info;
-mod days_2015;
-mod days_2018;
-mod days_2020;
+// mod days_2015;
+// mod days_2018;
+// mod days_2020;
 mod days_2021;
 mod common;
 mod grid;
@@ -53,9 +53,9 @@ fn main() -> Result<(), std::io::Error> {
         if multiple_years { println!("============= {} =============", year); }
 
         let solver_getter = match year {
-            "2015" => days_2015::get_solver,
-            "2018" => days_2018::get_solver,
-            "2020" => days_2020::get_solver,
+            // "2015" => days_2015::get_solver,
+            // "2018" => days_2018::get_solver,
+            // "2020" => days_2020::get_solver,
             "2021" => days_2021::get_solver,
             _ => panic!("Year not implemented!"),
         };
