@@ -85,7 +85,6 @@ fn run_day(day_func: &Solver, year: &str, day: &str, input_path: Option<&Path>) 
         .map(get_file_contents)
         .unwrap_or_else(|| get_file_contents(&day_input_filename(year,day)))?;
 
-    //let s1 = day_func(&input);
     let start = Instant::now();        
     let solution = day_func(&input);
     let duration = start.elapsed();
