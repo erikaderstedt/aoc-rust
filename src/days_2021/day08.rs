@@ -2,63 +2,65 @@
 use crate::common::Solution;
 
 const NUM_SEGMENTS: usize = 7;
-// The segments that must be set for a character with N set segments (0-7)
-const INTERSECTION: [u8;NUM_SEGMENTS+1] = [
-    0,0,0b0100100,0b0100101,0b0101110, 0b1001001, 0b1100011, 0b1111111];
-const DIGITS: [usize;128] = {                                       
-    let mut digits_lookup = [0; 128];                               //  0000
-    digits_lookup[0b1110111] = 0;    digits_lookup[0b0100100] = 1;  // 1    2   
-    digits_lookup[0b1011101] = 2;    digits_lookup[0b1101101] = 3;  // 1    2 
-    digits_lookup[0b0101110] = 4;    digits_lookup[0b1101011] = 5;  //  3333
-    digits_lookup[0b1111011] = 6;    digits_lookup[0b0100101] = 7;  // 4    5
-    digits_lookup[0b1111111] = 8;    digits_lookup[0b1101111] = 9;  // 4    5
-    digits_lookup                                                   //  6666
-};
+const NUM_DISPLAYS: usize = 4;
+const SPACE: u8 = ' ' as u8;
+const PIPE: u8 = '|' as u8;
 
-fn segments(s: &str) -> u8 {
-    s.chars().fold(0u8, |x, c| x + (1 << ((c as u8)-('a' as u8))))
+fn parse(s: &str) -> ([u8;10],[u8;NUM_DISPLAYS]) {
+    let mut samples = [0u8;10];
+    let mut displays = [0u8;NUM_DISPLAYS];
+    let mut i = 0isize;
+    let mut first_part = true;
+    for &c in s.as_bytes() {
+        if c == SPACE {
+            i += 1;
+        } else if c == PIPE {
+            first_part = false;
+            i = -1;
+        } else if first_part {
+            samples[i as usize] |= 1 << (c - 97);
+        } else {
+            displays[i as usize] |= 1 << (c - 97);
+        }
+    }
+    (samples,displays)
 }
 
-fn interpret_digits(wires: &Vec<u8>, digits: &Vec<u8> ) -> usize {
-    let mut possibilities = [127u8; NUM_SEGMENTS]; // Each segment can be any bit
-    for w in wires {
-        let len = w.count_ones() as usize;
-        for i in 0..NUM_SEGMENTS { 
-            if INTERSECTION[len] & (1 << i) > 0 { possibilities[i] &= w }
+fn interpret_digits(wires: &[u8;10], digits: &[u8;NUM_DISPLAYS] ) -> usize {
+    let mut one = 0;
+    let mut four = 0;
+    for &w in wires {
+        match w.count_ones() {
+            2 => { one = w; },
+            4 => { four = w; },
+            _ => { },
         }
-    }    
-    let mut wire_names = [0u8; NUM_SEGMENTS];
-    while possibilities.iter().any(|p| *p > 0) {
-        let mut found: u8 = 0;                
-        for (i, p) in possibilities.iter().enumerate() {
-            if p.count_ones() == 1 {
-                wire_names[p.trailing_zeros() as usize] = i as u8;
-                found |= p.clone();
-            }
-        }
-       for po in possibilities.iter_mut() { *po &= !found }
     }
-    digits.iter().fold(0, |s, digit| {
-        let mut x = 0u8;
-        for i in 0..NUM_SEGMENTS { 
-            if digit & (1 << i) > 0 { x |= 1 << wire_names[i] } 
-        }
-        10 * s + DIGITS[x as usize]
-    })
+    let mut digitmap = [0; 1 << NUM_SEGMENTS];
+    for &w in wires {
+        digitmap[w as usize] = match w.count_ones() {
+            2 => 1, 3 => 7, 4 => 4, 7 => 8,
+            6 if (w & one).count_ones() == 1 => 6,
+            6 if (w & four).count_ones() == 3 => 0,
+            6 => 9,
+            5 if (w & one).count_ones() == 2 => 3,
+            5 if (w & four).count_ones() == 2 => 2,
+            5 => 5,
+            _ => panic!("Unexpected number of bits in sample signal"),
+        };
+    }
+
+    digits.iter().fold(0, |s, &digit| { 10*s + digitmap[digit as usize] })
 }
 
 pub fn solve(input: &str) -> Solution {
-    let displays: Vec<(Vec<u8>,Vec<u8>)> =
-        input.lines().map(|line| {
-            let (f,s) = line.split_once(" | ").unwrap();
-            (f.split(' ').map(|j| segments(j)).collect(), 
-            s.split(' ').map(|j| segments(j)).collect())
-        }).collect();
+    let displays: Vec<([u8;10],[u8;NUM_DISPLAYS])> =
+        input.lines().map(|line| parse(line)).collect();
 
     let m1 = displays.iter().fold(0, |i, digits| i + digits.1.iter()
-        .filter(|display| match display.count_ones() { 2 | 4 | 3 | 7 => true, _ => false })
+        .filter(|display| matches!(display.count_ones(), 2 | 4 | 3 | 7))
         .count());
-
+    
     let m2 = displays.into_iter().fold(0usize, 
         |sum, (wires, digits)| sum + interpret_digits(&wires, &digits));
 
