@@ -1,194 +1,66 @@
 // https://adventofcode.com/2021/day/7
 use crate::common::Solution;
-use std::collections::HashSet;
-use itertools::Itertools;
-// use std::str::FromStr;
 
-// 0 : 6 segment
-// 1 : 2 segment
-// 2: 5, 3: 5, 4:4 5:5 6:6 7:3 8:8 9:6
+const NUM_SEGMENTS: usize = 7;
 
-// enum Movement {
-//     Down(i64),
-//     Up(i64),
-//     Forward(i64),
-// }
-
-// impl FromStr for Movement {
-//     type Err = &'static str;
-
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         match s.split_once(" | ") {
-//             Some((_first, second)) => {
-//                 second.split(' ').
-//                 let x = magnitude.parse::<i64>().map_err(|_| "Invalid integer literal")?;
-//                 match command {
-//                     "down" => Ok(Movement::Down(x)),
-//                     "up" => Ok(Movement::Up(x)),
-//                     "forward" => Ok(Movement::Forward(x)),
-//                     _ => Err("Bad instruction"),
-//                 }},
-//             _ => Err("Malformed line."),
-//         }
-//     }
-// }
-
-// At the beginning, each segment can be any letter.
-// if 1
-//     if 1 and 7 -> top is known.
+// The segments that must be set for a character with N set segments (0-7)
+const INTERSECTION: [u8;NUM_SEGMENTS+1] = [
+    0,0,0b0100100,0b0100101,0b0101110, 0b1001001, 0b1100011, 0b1111111];
 
 fn segments(s: &str) -> u8 {
-    let mut x = 0u8;
-    for c in s.chars() {
-        match c {
-            'a' => x += 1 << 0,
-            'b' => x += 1 << 1,
-            'c' => x += 1 << 2,
-            'd' => x += 1 << 3,
-            'e' => x += 1 << 4,
-            'f' => x += 1 << 5,
-            'g' => x += 1 << 6,
-            _ => {},
-        }
-    }
-    x
+    s.chars().fold(0u8, |x, c| x + (1 << ((c as u8)-('a' as u8))))
 }
 
 pub fn solve(input: &str) -> Solution {
-    let mut m1 = 0;
-    for line in input.lines() {
-        m1 += match line.split_once(" | ") {
-            Some((_first, second)) => {
-                second.split(' ').filter(|s| 
-                    match s.len() {
-                        2 | 4 | 3 | 7 => { true }
-                        _ => { false },
-                    }).count()
-            },
-            _ => { 0 },            
-        };
-    }
-    let mut m2 = 0;
-    for line in input.lines().skip(3) {
-        m2 += match line.split_once(" | ") {
-            Some((first, second)) => {
-                //  0000
-                // 1    2
-                // 1    2
-                //  3333
-                // 4    5
-                // 4    5
-                //  6666
-                // Keep u8 for all possible locations for a signal
-                // If we have a 6 and have already received a different 6 (different bits),
-                // then and them together and get 0,1,3,5,6
+    let (all_wires, all_digits): (Vec<Vec<u8>>, Vec<Vec<u8>>) =
+        input.lines().map(|line| {
+            let (f,s) = line.split_once(" | ").unwrap();
+            (f.split(' ').map(|j| segments(j)).collect(), 
+            s.split(' ').map(|j| segments(j)).collect())
+        }).unzip();
 
-                let mut x = [127u8; 7];
-                let mut h5: HashSet<u8> = HashSet::new();
-                let mut h6: HashSet<u8> = HashSet::new();
-                let mut f1: Option<u8> = None;
-                let mut f7: Option<u8> = None;
-                
-                for s in first.split(' ').sorted_by(|s1,s2| s1.len().cmp(&s2.len())) {
-                    let segs = segments(s);
-                    match s.len() {
-                        2 => { 
-                            x[2] = segs;
-                            x[5] = segs;
-                            f1 = Some(segs);
-                        },
-                        3 => {
-                            match f1 {
-                                Some(o) => { x[0] = segs ^ o;},
-                                None => {
-                                    x[0] = segs;
-                                    x[2] = segs;
-                                    x[5] = segs;
-                                }
-                            };
-                            f7 = Some(segs);
-                        },
-                        4 => {
-                            match f1 {
-                                Some(o) => {
-                                    x[1] = segs ^ o;
-                                    x[3] = segs ^ o;
-                                }
-                                None => { 
-                                    x[1] &= segs;
-                                    x[2] &= segs;
-                                    x[3] &= segs;
-                                    x[5] &= segs;
-                                }
-                            }
-                        },
-                        6 => { // 0, 6, 9
-                            h6.insert(segs);
-                            if h6.len() == 2 {
-                                let segs2 = h6.iter().fold(255u8,|x, v| x & (*v));
-                                x[0] &= segs2;
-                                x[1] &= segs2;
-                                x[5] &= segs2;
-                                x[6] &= segs2;
-                            }
-                        },
-                        5 => {
-                            h5.insert(segs);
-                            if h5.len() == 3 {
-                                let segs2 = h5.iter().fold(255u8,|x, v| x & (*v));
-                                x[0] &= segs2;
-                                x[3] &= segs2;
-                                x[6] &= segs2;
-                            }
-                        },
-                        _ => {},
+    let m1 = all_digits.iter().fold(0, |i, digits| 
+        i + digits.iter()
+                .filter(|display| match display.count_ones() { 2 | 4 | 3 | 7 => true, _ => false })
+                .count());
+                                                                    //  0000
+    let mut digits_lookup = [0; 128];                               // 1    2
+    digits_lookup[0b1110111] = 0;    digits_lookup[0b0100100] = 1;  // 1    2    
+    digits_lookup[0b1011101] = 2;    digits_lookup[0b1101101] = 3;  //  3333
+    digits_lookup[0b0101110] = 4;    digits_lookup[0b1101011] = 5;  // 4    5
+    digits_lookup[0b1111011] = 6;    digits_lookup[0b0100101] = 7;  // 4    5
+    digits_lookup[0b1111111] = 8;    digits_lookup[0b1101111] = 9;  //  6666
+
+    let m2 = all_wires.into_iter().zip(all_digits.into_iter()).fold(0usize, 
+        |sum, (wires, digits)| {
+            let mut possibilities = [127u8; NUM_SEGMENTS]; // Each segment can be any bit
+            for w in wires {
+                let len = w.count_ones() as usize;
+                for i in 0..NUM_SEGMENTS { 
+                    if INTERSECTION[len] & (1 << i) > 0 { possibilities[i] &= w }
+                }
+            }
+
+            let mut wire_names = [0u8; NUM_SEGMENTS];
+            while possibilities.iter().any(|p| *p > 0) {
+                let mut found: u8 = 0;                
+                for (i, p) in possibilities.iter().enumerate() {
+                    if p.count_ones() == 1 {
+                        wire_names[p.trailing_zeros() as usize] = i as u8;
+                        found |= p.clone();
                     }
-                    println!("{} {} {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}", s, s.len(), x[0], x[1], x[2], x[3], x[4], x[5], x[6]);
                 }
+               for po in possibilities.iter_mut() { *po &= !found }
+            }
 
-                if x.iter().all(|q| q.count_ones() > 1) {
-                    panic!("No solution: {}", line);
+            sum + digits.iter().fold(0, |s, digit| {
+                let mut x = 0u8;
+                for i in 0..NUM_SEGMENTS { 
+                    if digit & (1 << i) > 0 { x |= 1 << wire_names[i] } 
                 }
-                
-                // Any with just a single bit is now determined
-                // Determine bit -> segment
-                let mut y = [0u8;7];
-                while x.iter().any(|q| q.count_ones() >= 1) {
-                    // Find first with 1
-                    let (segment_index, bit_value): (usize, u8) = x.iter().enumerate().find(|(i,v)| v.count_ones() == 1).map(|(i,v)| (i, v.clone())).unwrap();
-                    y[segment_index] = bit_value;
-                    for i in 0..7 { x[i] &= !bit_value }
-                    println!("x: {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}",  x[0], x[1], x[2], x[3], x[4], x[5], x[6]);
-                    println!("y: {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}",  y[0], y[1], y[2], y[3], y[4], y[5], y[6]);
-       
-                }
+                10 * s + digits_lookup[x as usize]
+            })
+        });
 
-    // println!("Final: {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}",  y[0], y[1], y[2], y[3], y[4], y[5], y[6]);
-                
-                let digits = [
-                    y[0] | y[1] | y[2] | y[4] | y[5] | y[6],
-                    y[2] | y[5],
-                    y[0] | y[2] | y[3] | y[4] | y[6],
-                    y[0] | y[2] | y[3] | y[5] | y[6],
-                    y[1] | y[2] | y[3] | y[5],
-                    y[0] | y[2] | y[3] | y[5] | y[6],
-                    y[0] | y[1] | y[3] | y[4] | y[5] | y[6],
-                    y[0] | y[2] | y[5],
-                    y[0] | y[1] | y[2] | y[3] | y[4] | y[5] | y[6],
-                    y[0] | y[1] | y[2] | y[3] | y[5] | y[6]];
-
-                let mut num = 0;
-                for a in second.split(' ') {
-                    let q = segments(a);
-                    // println!("{:>07b} ||| {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b}  {:>07b} {:>07b}  {:>07b}  {:>07b}", q, digits[0], digits[1], digits[2], digits[3], digits[4], digits[5], digits[6], digits[7], digits[8], digits[9]);
-                    let d = digits.iter().enumerate().find(|(_i,&d)| d == q).unwrap().0;
-                    num = 10*num + d;
-                }
-
-                num
-            },
-            _ => { 0 },            
-        };
-    }
     Solution::new(m1, m2)
 }
