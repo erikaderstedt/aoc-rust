@@ -7,23 +7,20 @@ enum Evaluation {
 }
 
 fn evaluate(line: &str) -> Evaluation {
-    let mut v: Vec<u8> = Vec::with_capacity(100);
+    let mut v = [0u8;100];
+    let mut n = 0;
     for &b in line.as_bytes().iter() {
         match b {
-            b'(' | b'[' | b'<' | b'{' => v.push(b),
-            b')' if *v.last().unwrap() == b'(' => { v.pop(); },
-            b']' if *v.last().unwrap() == b'[' => { v.pop(); },
-            b'}' if *v.last().unwrap() == b'{' => { v.pop(); },
-            b'>' if *v.last().unwrap() == b'<' => { v.pop(); },
-            b')' => return Evaluation::Corrupt(3),
-            b']' => return Evaluation::Corrupt(57),
-            b'}' => return Evaluation::Corrupt(1197),
-            b'>' => return Evaluation::Corrupt(25137),
+            b'(' | b'[' | b'<' | b'{' => { v[n] = b; n += 1 },
+            b')' => if v[n-1] == b'(' { n -= 1; } else { return Evaluation::Corrupt(3) },
+            b']' => if v[n-1] == b'[' { n -= 1; } else { return Evaluation::Corrupt(57) },
+            b'}' => if v[n-1] == b'{' { n -= 1; } else { return Evaluation::Corrupt(1197) },
+            b'>' => if v[n-1] == b'<' { n -= 1; } else { return Evaluation::Corrupt(25137) },
             _ => panic!("Unexpected character {} in line.", b as char),
         }
     }
     Evaluation::Incomplete(
-        v.into_iter().rev().fold(0, |s, c| 
+        v[0..n].into_iter().rev().fold(0, |s, c| 
             5 * s + match c {
                 b'(' => 1,
                 b'[' => 2,

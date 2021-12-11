@@ -17,7 +17,7 @@ pub fn solve(input: &str) -> Solution {
 
     let mut m1: Vec<char> = Vec::new();
     while dependencies.iter().any(|&v| v > 0) {
-        let next_step = dependencies.iter().enumerate().find(|(_,&v)| v == 0x80000000).unwrap().0 as u8;
+        let next_step = dependencies.iter().position(|&v| v == 0x80000000).unwrap() as u8;
         for m in dependencies.iter_mut() {
             *m &= !(1u32 << next_step);
         }
