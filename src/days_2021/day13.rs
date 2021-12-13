@@ -1,86 +1,114 @@
 // https://adventofcode.com/2021/day/12
 use crate::common::Solution;
+use std::collections::HashSet;
 
-#[derive(Debug)]
 enum Fold {
     AlongX(usize),
     AlongY(usize),
 }
 
-const WIDTH: usize = 1306;
-const HEIGHT: usize = 894;
+const WIDTH: usize = 40;
+const HEIGHT: usize = 6;
 
-fn fold(grid: &mut [bool;WIDTH*HEIGHT], sizes: (usize, usize), fold: &Fold) -> (usize, usize) {
-    match fold {
-        Fold::AlongY(y) => {
-            for i in (y+1)..sizes.1 {
-                for x in 0..sizes.0 {
-                    grid[(y-(i-y))*WIDTH + x] = grid[(y-(i-y))*WIDTH + x] || grid[i*WIDTH + x];
-                }
-            }
-            (sizes.0, *y)
-        },
-        Fold::AlongX(x) => {
-            for i in (x+1)..sizes.0 {
-                for y in 0..sizes.1 {                    
-                    grid[y*WIDTH + (x-(i-x))] = grid[y*WIDTH + (x-(i-x))] || grid[y*WIDTH + i];
-                }
-            }
-            (*x, sizes.1)
-        }
-    }
-}
-
-fn num_visible(grid: &[bool;WIDTH*HEIGHT], sizes: (usize, usize)) -> usize {
-    let mut s = 0;
-    for y in 0..sizes.1 {
-        for x in 0..sizes.0 {
-            if grid[y*WIDTH + x] { s += 1; }
-        }
-    }
-    s
-}
-
-fn display(grid: &[bool;WIDTH*HEIGHT], sizes: (usize, usize)) {
-    for y in 0..sizes.1 {
-        for x in 0..sizes.0 {
-            if grid[y*WIDTH + x] {
+fn display(grid: &[[bool;WIDTH];HEIGHT]) {
+    #![allow(dead_code)]
+    for line in grid.iter() {
+        for v in line.iter() {
+            if *v {
                 print!("#");
             } else {
                 print!(" ");
             }
-        }
+        } 
         println!("");
     }
 }
 
-pub fn solve(input: &str) -> Solution {
-    let mut grid = [false;WIDTH*HEIGHT];
-    for line in input.lines().take_while(|&line| line != "") {
-        let (x,y) = line.split_once(',').unwrap();
-        let x = x.parse::<usize>().unwrap();
-        let y = y.parse::<usize>().unwrap();
-        grid[y*WIDTH+x] = true;
+const ORIGINAL_X_SIZE: usize = 1306;
+const ORIGINAL_Y_SIZE: usize = 894;
+fn create_coordinate_maps<'a,I>(folds: I) -> (Vec<usize>, Vec<usize>) 
+where I: Iterator<Item=&'a Fold> {
+    let mut x_map = Vec::with_capacity(ORIGINAL_X_SIZE);
+    let mut y_map = Vec::with_capacity(ORIGINAL_Y_SIZE);
+    for i in 0..ORIGINAL_X_SIZE { 
+        x_map.push(i);
+        y_map.push(i);
     }
-
-    let folds: Vec<Fold> = input.lines().skip_while(|line| !line.starts_with("fold")).map(|line| {
-        let (_, n) = line.split_once('=').unwrap();
-        let l = n.parse::<usize>().unwrap();
-        match line.as_bytes()[11] {
-            b'y' => Fold::AlongY(l),
-            b'x' => Fold::AlongX(l),
-            _ => panic!("Bad format"),
+    for i in 0..ORIGINAL_Y_SIZE { 
+        y_map.push(i);
+    }
+    let mut x_size = ORIGINAL_X_SIZE;
+    let mut y_size = ORIGINAL_Y_SIZE;
+    for fold in folds {
+        match fold {
+            Fold::AlongY(y) => {
+                y_map[*y] = 0;
+                for i in (y+1)..y_size {
+                    y_map[i] = 2*y - i;
+                }
+                for i in y_size..ORIGINAL_Y_SIZE {
+                    y_map[i] = y_map[y_map[i]];
+                }
+                y_size = *y;
+            },
+            Fold::AlongX(x) => {
+                x_map[*x] = 0;
+                for i in (x+1)..x_size {
+                    x_map[i] = 2*x - i;
+                }
+                for i in x_size..ORIGINAL_X_SIZE {
+                    x_map[i] = x_map[x_map[i]];
+                }
+                x_size = *x;
+            },
+        }
+    }
+    (x_map, y_map)
+}
+pub fn solve(input: &str) -> Solution {
+    let folds: Vec<Fold> = input.lines().filter_map(|line| {
+        match line.split_once('=') {
+            Some((_,b)) => {
+                let l = b.parse::<usize>().unwrap();
+                match line.as_bytes()[11] {
+                    b'y' => Some(Fold::AlongY(l)),
+                    b'x' => Some(Fold::AlongX(l)),
+                    _ => panic!("Bad format"),
+                }
+            },
+            None => None,
         }
     }).collect();
 
-    let sz = fold(&mut grid, (WIDTH,HEIGHT), &folds[0]);
-    let m1 = num_visible(&grid, sz);
-    let _all_folded = folds.iter().skip(1).fold(sz, |sz, f| {
-        fold(&mut grid, sz, f)
-    });
-    // display(&grid, all_folded);
+    let num_original_points = input.lines().count() - 1 - folds.len();
+    let grid_points: Vec<(usize,usize)> = input.lines().take(num_original_points).map(|line| {
+        let (x,y) = line.split_once(',').unwrap();
+        (x.parse::<usize>().unwrap(), y.parse::<usize>().unwrap())
+    }).collect();
 
-    Solution::new(m1,"JGAJEFKU")
+    // For pt 1, use HashSet of coordinates because the grid will be too large and slow.
+    let m1 = {
+        let (x_map, y_map) = create_coordinate_maps(folds.iter().take(1));
+        let points: HashSet<(usize,usize)> = grid_points.iter().map(|(x,y)| {
+            (x_map[*x], y_map[*y])
+        }).collect();
+        points.len()
+    };
+
+    let m2 = {
+        // For pt 2, use a grid. Grid will be the size of the last folds in each direction
+        // For now, hard code these
+        let (x_map, y_map) = create_coordinate_maps(folds.iter());
+        let mut grid = [[false;WIDTH];HEIGHT];
+        for (x0, y0) in grid_points.into_iter() {
+            grid[y_map[y0]][x_map[x0]] = true;
+        }
+    
+        //display(&grid);
+        "JGAJEFKU"
+    };
+
+    Solution::new(m1,m2)
 }
 
 
