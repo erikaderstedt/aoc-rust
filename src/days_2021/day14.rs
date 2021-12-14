@@ -15,6 +15,16 @@ fn most_vs_least_common(polymer: &Polymer, initial_byte: u8) -> usize {
 	most_common - least_common
 }
 
+fn update(polymer: Polymer, reaction_pairs: &HashMap<Pair,(Pair,Pair)>) -> Polymer {
+	let mut new_polymer: Polymer = HashMap::new();
+	for (pair, count) in polymer.into_iter() {
+		let (p1,p2) = reaction_pairs[&pair];
+		*new_polymer.entry(p1).or_insert(0) += count;
+		*new_polymer.entry(p2).or_insert(0) += count;
+	}
+	new_polymer
+}
+
 pub fn solve(input: &str) -> Solution {
 	let reaction_pairs: HashMap<Pair,(Pair,Pair)> = input
 		.lines()
@@ -35,27 +45,10 @@ pub fn solve(input: &str) -> Solution {
 		}
 	let initial_byte: u8 = input.as_bytes()[0];
 
-	for _step in 0..10 {
-		let mut new_polymer: Polymer = HashMap::new();
-		for (pair, count) in polymer.into_iter() {
-			let (p1,p2) = reaction_pairs[&pair];
-			*new_polymer.entry(p1).or_insert(0) += count;
-			*new_polymer.entry(p2).or_insert(0) += count;
-		}
-		polymer = new_polymer;
-	}
+	for _step in 0..10 { polymer = update(polymer, &reaction_pairs); }
 	let m1 = most_vs_least_common(&polymer, initial_byte);
-	for _step in 10..40 {
-		let mut new_polymer: Polymer = HashMap::new();
-		for (pair, count) in polymer.into_iter() {
-			let (p1,p2) = reaction_pairs[&pair];
-			*new_polymer.entry(p1).or_insert(0) += count;
-			*new_polymer.entry(p2).or_insert(0) += count;
-		}
-		polymer = new_polymer;
-	}
+	for _step in 10..40 { polymer = update(polymer, &reaction_pairs); }
 	let m2 = most_vs_least_common(&polymer, initial_byte);
-
 
     Solution::new(m1,m2)
 }
