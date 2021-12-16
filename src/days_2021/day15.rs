@@ -11,14 +11,19 @@ struct State {
     index: usize,
 }
 
-fn neighbors<const N:usize>(index: usize) -> [Option<(usize,usize,usize)>;4] {
+struct Location {
+    index: usize,
+    x: usize,
+    y: usize
+}
+
+fn neighbors<const N:usize>(index: usize) -> [Option<Location>;4] {
     let y = index / N;
     let x = index - y * N;
-    [
-    if y > 0 { Some((index - N, x, y-1)) } else { None},
-    if x > 0 { Some((index - 1, x-1, y)) } else { None },
-    if x < N - 1 { Some((index + 1, x+1, y)) } else { None },
-    if y < N - 1 { Some((index + N, x, y+1)) } else { None}]
+   [if y > 0     { Some(Location { index: index - N, x, y: y-1 }) } else { None },
+    if x > 0     { Some(Location { index: index - 1, x: x-1, y }) } else { None },
+    if x < N - 1 { Some(Location { index: index + 1, x: x+1, y }) } else { None },
+    if y < N - 1 { Some(Location { index: index + N, x, y: y+1 }) } else { None }]
 }
 
 fn find_shortest_path<const N:usize>(input: &str) -> Option<Cost> {
@@ -53,10 +58,10 @@ fn find_shortest_path<const N:usize>(input: &str) -> Option<Cost> {
         if index == end { return Some(cost) }
         if cost > dist[index] { continue; }
         heap.extend(
-            neighbors::<N>(index).iter().filter_map(|&n| 
+            neighbors::<N>(index).iter().filter_map(|n| 
             match n {
-                Some((other_index,x,y)) => {
-                    let next = State { cost: cost + grid[y][x] as Cost, index: other_index };
+                Some(Location { index: other_index,x,y }) => {
+                    let next = State { cost: cost + grid[*y][*x] as Cost, index: *other_index };
                     if next.cost < dist[next.index] {
                         dist[next.index] = next.cost;
                         Some(next)
