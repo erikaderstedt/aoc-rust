@@ -1,127 +1,95 @@
 // https://adventofcode.com/2021/day/16
 use crate::common::Solution;
 
-enum OperatorType {
-    Sum,
-    Product,
-    Minimum,
-    Maximum,
-    GreaterThan,
-    LessThan,
-    Equal,
+struct Bitstream {
+    stream: Vec<u64>, // 4 bits per u8
+    bit: usize,
+    index: usize,
 }
 
-impl OperatorType {
-    fn from(v: u8) -> OperatorType {
-        match v {
-            0 => OperatorType::Sum,
-            1 => OperatorType::Product,
-            2 => OperatorType::Minimum,
-            3 => OperatorType::Maximum,
-            5 => OperatorType::GreaterThan,
-            6 => OperatorType::LessThan,
-            7 => OperatorType::Equal,
-            _ => panic!("Unexpected operator type"),
+impl Bitstream {
+
+    fn counter(&self) -> usize {
+        self.index * 64 + self.bit
+    }
+
+    fn from(input: &str) -> Bitstream {
+        let mut stream: Vec<u64> = input.as_bytes().chunks(16)
+            .map(|i| i.iter().fold(0u64, |v, x| (v << 4) + (match x {
+                            b'0'..=b'9' => x - b'0',
+                            b'A'..=b'F' => x - b'A' + 10,
+                            _ => panic!("Not a hexadecimal number")}) as u64))
+            .collect();
+        let last = stream.len()-1;
+        stream[last] <<= 4*(16 - (input.len()%16));
+
+        Bitstream { stream, bit: 0, index: 0 }
+    }
+
+    fn extract<const N:usize>(&mut self) -> u64 {
+        if self.bit > 64 - N {
+            // Combine two values
+            let bits_in_this_index = 64 - self.bit;
+            let bits_in_next_index = N - bits_in_this_index;
+            let mut value = (self.stream[self.index] >> self.bit) << bits_in_next_index;
+            self.index += 1;
+            value |= self.stream[self.index] >> (64 - bits_in_next_index);
+            self.stream[self.index] <<= bits_in_next_index;
+            self.bit = bits_in_next_index;
+            value
+        } else {
+            let value = self.stream[self.index] >> (64-N);
+            self.stream[self.index] <<= N;
+            self.bit += N;
+            value
         }
     }
+
 }
 
 enum PacketType {
     Literal(u64),
-    Operator(OperatorType,Vec<Packet>),
+    Operator(u8,Vec<Packet>),
 }
 
 struct Packet {
     version: u8,
-    length: u64,
     packet_type: PacketType,
-}
-
-fn to_bits(input: &str) -> Vec<u8> {
-    let mut v = Vec::with_capacity(input.len()*4);
-    for c in input.as_bytes() {
-        let v1 = match c { b'0'..=b'9' => c - b'0', b'A'..=b'F' => c - b'A' + 10, _ => panic!("Bad hexadecimal") };
-        v.push(if (v1 & 0b1000) > 0 { 1 } else { 0 });
-        v.push(if (v1 & 0b0100) > 0 { 1 } else { 0 });
-        v.push(if (v1 & 0b0010) > 0 { 1 } else { 0 });
-        v.push(if (v1 & 0b0001) > 0 { 1 } else { 0 });
-    }
-    v
 }
 
 const PACKET_TYPE_LITERAL: u8 = 0b100;
 
-// fn get_bits(x: &[u8], start: u8, num_bits: u8) -> u8 {
-//     // 1, 5
-//     // 
-//     if 8-start < num_bits {
-//         println!("{:08b}{:08b} {} {} {:>05b} {:08b}", x[0], x[1],(num_bits - (8-start)), (8 - (num_bits - (8-start))),
-//         (x[0] & ((1 << (8-start))-1)) << (num_bits - (8-start)), (x[1] >> (8 - (num_bits - (8-start))))
-//     );
-//         (x[0] & ((1 << (8-start))-1)) << (num_bits - (8-start)) +
-//         (x[1] >> (8 - (num_bits - (8-start))))
-//     } else {
-//         (x[0] >> (8 - start - num_bits)) & ((1 << num_bits) - 1)
-//     }
-// }
-
-// impl Packet {
-
-//     fn from(x:&[u8]) -> (Option<Packet>, usize) {
-
-//         let version = x[0] >> 5;
-//         let t = (x[0] >> 2) & 0x7;
-//         println!("Version: {:>03b}. Type: {:>03b} {:>08b}", version,t, x[0]);
-//             },
-//             _ => { PacketType::Operator },
-//         };
-//         (Some(Packet { version, packet_type }), 0)
-//     }
-// }
-
 impl Packet {
 
-    fn from(x: &Vec<u8>, index: &mut usize) -> Packet {
-        let start = index.clone();
-        let version = read(x, index, 3) as u8;
-        let t = read(x, index, 3) as u8;
-        // let mut length = 6;
+    fn from<'a>(bitstream: &mut Bitstream) -> Packet {
+        let version = bitstream.extract::<3>() as u8;
+        let t = bitstream.extract::<3>() as u8;
         let packet_type = match t {
             PACKET_TYPE_LITERAL => {
-                // Read groups of 5 bits.
                 let mut v: u64 = 0;
                 loop {
-                    v = v << 4;
-                    let block = read(&x, index, 5);
-                    v += (block & 0b1111) as u64;
-                    // length += 5;
+                    let block = bitstream.extract::<5>();
+                    v = (v << 4) + ((block & 0b1111) as u64);
                     if (block & 0b10000) == 0 { break }
                 };
-                // println!("Literal {}", v);
                 PacketType::Literal(v)
             },
-            t => {
-                let operator_type = OperatorType::from(t);
+            operator_type => {
                 let mut sub_packets = Vec::new();
-                let length_type = read(x, index, 1);
-                // length += 1;
+                let length_type = bitstream.extract::<1>();
                 match length_type {
                     0 => {
-                        let total_length = read(x, index, 15);
-                        // length += total_length + 15;
-                        let mut sub_packet_length = 0;
-                        while sub_packet_length < total_length {
-                            let p = Packet::from(x, index);
-                            sub_packet_length += p.length;
+                        let total_length = bitstream.extract::<15>() as usize;
+                        let start = bitstream.counter();
+                        while start + total_length > bitstream.counter() {
+                            let p = Packet::from(bitstream);
                             sub_packets.push(p);
                         }
                     },
                     1 => {
-                        let num_packets = read(x, index, 11);
-                        // length += 11;
+                        let num_packets = bitstream.extract::<11>();
                         for _ in 0..num_packets {
-                            let p = Packet::from(x, index);
-                            // length += p.length;
+                            let p = Packet::from(bitstream);
                             sub_packets.push(p);
                         }
                     },
@@ -129,8 +97,7 @@ impl Packet {
                 };
                 PacketType::Operator(operator_type, sub_packets) },
         };
-        let length = (*index - start) as u64;
-        Packet { version, length, packet_type }
+        Packet { version, packet_type }
     }
 
     fn total_version(&self) -> u64 {
@@ -147,33 +114,26 @@ impl Packet {
             PacketType::Operator(t, sub_packets) => {
                 let sub_packet_values: Vec<u64> = sub_packets.iter().map(|p| p.value()).collect();
                 match t {
-                    OperatorType::Sum => sub_packet_values.into_iter().sum(),
-                    OperatorType::Product => sub_packet_values.into_iter().product(),
-                    OperatorType::Equal => if sub_packet_values[0] == sub_packet_values[1] { 1 } else { 0 },
-                    OperatorType::Minimum => sub_packet_values.into_iter().min().unwrap(),
-                    OperatorType::Maximum => sub_packet_values.into_iter().max().unwrap(),
-                    OperatorType::GreaterThan => if sub_packet_values[0] > sub_packet_values[1] { 1 } else { 0 },
-                    OperatorType::LessThan => if sub_packet_values[0] < sub_packet_values[1] { 1 } else { 0 },
+                    0 => sub_packet_values.into_iter().sum(),
+                    1 => sub_packet_values.into_iter().product(),
+                    7 => if sub_packet_values[0] == sub_packet_values[1] { 1 } else { 0 },
+                    2 => sub_packet_values.into_iter().min().unwrap(),
+                    3 => sub_packet_values.into_iter().max().unwrap(),
+                    5 => if sub_packet_values[0] > sub_packet_values[1] { 1 } else { 0 },
+                    6 => if sub_packet_values[0] < sub_packet_values[1] { 1 } else { 0 },
+                    _ => panic!("Unrecognized operator type"),
                 }
             }
         }
     }
 }
 
-fn read(x: &Vec<u8>, index: &mut usize, num_bits: usize) -> u64 {
-    (0..num_bits).fold(0u64, |v, _| { 
-        let a = (v << 1) + (x[*index] as u64);
-        *index += 1;
-        a})
-}
-
 pub fn solve(input: &str) -> Solution {
-    let x = to_bits(input);
-    let mut i = 0;
-    let p = Packet::from(&x, &mut i);
+    let mut bitstream = Bitstream::from(input);
+    let p = Packet::from(&mut bitstream);
     
     let m1 = p.total_version();
     let m2 = p.value();
-
+    
     Solution::new(m1,m2)
 }
