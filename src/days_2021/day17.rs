@@ -11,7 +11,7 @@ fn fire_probe(mut vx: isize, mut vy: isize) -> Option<isize> {
     let mut y = 0;
     let mut max_y = 0;
 
-    while y >= TARGET_AREA_Y_START {
+    while y >= TARGET_AREA_Y_START && x <= TARGET_AREA_X_STOP {
         x += vx;
         y += vy;
         if y > max_y { max_y = y }
@@ -31,8 +31,8 @@ fn fire_probe(mut vx: isize, mut vy: isize) -> Option<isize> {
 pub fn solve(_input: &str) -> Solution {
     let mut m1 = 0;
     let mut m2 = 0;
-    for vy in TARGET_AREA_Y_START..150 {
-        for vx in 10..=TARGET_AREA_X_STOP {
+    for vy in TARGET_AREA_Y_START..200 {
+        for vx in 1..=TARGET_AREA_X_STOP {
             if let Some(m) = fire_probe(vx, vy) {
                 if m1 < m { m1 = m; }
                 m2 += 1;
