@@ -1,61 +1,78 @@
 // https://adventofcode.com/2021/day/17
 use crate::common::Solution;
-use itertools::Itertools;
 
-type Position = i16;
-type Velocity = i16;
-type Iteration = u16;
+type Position = i32;
 const TARGET_AREA_X_START: Position = 124;
 const TARGET_AREA_X_STOP: Position = 174;
 const TARGET_AREA_Y_START: Position = -123;
 const TARGET_AREA_Y_STOP: Position = -86;
 
-// Get the lowest and highest iteration number that will hit the target area given this input velocity.
-fn iterations<F: Fn(Position) -> bool, G: Fn(Position) -> bool>(mut velocity: Velocity, reached: F, passed: G, stop: bool) 
-    -> Option<((Iteration, Iteration), Velocity)> {
-    let mut p = 0;
-    let mut n = 0;
-    let v0 = velocity;
-    let minimum_num_iterations = loop { 
-        p += velocity; 
-        velocity -= 1; 
-        n += 1;
-        if reached(p) { break n }
-    };
-    if passed(p) { None } // We blew right past. 
-    else if stop { Some(((minimum_num_iterations, Iteration::MAX), v0)) }
-    else {
-        let maximum_num_iterations = loop { 
-            p += velocity; 
-            velocity -= 1; 
-            if passed(p) { break n }
-            n += 1;
-        };
-        Some(((minimum_num_iterations, maximum_num_iterations), v0))
+fn does_probe_hit(mut x: Position, mut y: Position, mut vx: Position, mut vy: Position) -> bool {
+    while y >= TARGET_AREA_Y_START && x <= TARGET_AREA_X_STOP {
+        if x >= TARGET_AREA_X_START && y <= TARGET_AREA_Y_STOP {
+            return true;
+        }
+        x += vx;
+        y += vy;
+        if vx > 0 { vx -= 1; }
+        vy -= 1;        
     }
+    false
 }
 
 pub fn solve(_input: &str) -> Solution {
+    let mut m1 = 0;
+    let mut m2 = 0;
     // vx is at most TARGET_AREA_X_STOP
     // the cumulative sum of vx must also be at least TARGET_AREA_X_START
     // otherwise we will never reach the target area.
-    let lowest_x_velocity: Velocity = (1..TARGET_AREA_X_START).find(|x| x*(x+1) >= 2*TARGET_AREA_X_START).unwrap();
-    let x_data: Vec<((Iteration, Iteration), Velocity)> = (lowest_x_velocity..=TARGET_AREA_X_STOP)
-        .flat_map(move |vx| iterations(vx, |x| x >= TARGET_AREA_X_START, |x| x > TARGET_AREA_X_STOP, vx*(vx+1)/2 <= TARGET_AREA_X_STOP))
-        .collect();
-    
-    let y_data: Vec<((Iteration, Iteration), Velocity)> = (TARGET_AREA_Y_START..=(-TARGET_AREA_Y_START))
-        .flat_map(move |vy| iterations(vy, |y| y <= TARGET_AREA_Y_STOP, |y| y < TARGET_AREA_Y_START, false))
-        .collect();
+    let lowest_x_velocity: Position = (1..TARGET_AREA_X_START).skip_while(|x| x*(x+1) < 2*TARGET_AREA_X_START).next().unwrap();
+    for vx in lowest_x_velocity..=TARGET_AREA_X_STOP {
+        // vx * N >= TARGET_AREA_X_START
+        // vx * N <= TARGET_AREA_X_STOP
+        let mut x = 0;
+        let mut n = 0;
+        let mut vx_simulated = vx;
+        let minimum_num_iterations = loop { 
+            x += vx_simulated; 
+            if vx_simulated > 0 { vx_simulated -= 1; }
+            n += 1;
+            if x >= TARGET_AREA_X_START { break n }
+        };
+        let minimum_vy_diff = minimum_num_iterations*(minimum_num_iterations-1)/2;
+        let vy_lower_bound = (TARGET_AREA_Y_START + minimum_vy_diff)/minimum_num_iterations;
 
-    let highest_upward_velocity = y_data.iter().map(|&a| a.1).max().unwrap();
-    let m1 = highest_upward_velocity*(highest_upward_velocity+1)/2;
-    // Look at all combinations of x and y velocities that have an overlapping number of iterations
-    // This means that for this combination of vx and vy there will be an iteration that overlaps.
-    let m2 = x_data.into_iter()
-        .cartesian_product(y_data.into_iter())
-        .filter(|((x,_), (y,_))| !(x.1 < y.0 || y.1 < x.0))
-        .count();
+        let vy_upper_bound: Position = 
+        if vx*(vx+1)/2 <= TARGET_AREA_X_STOP {
+            // if vx*(vx+1)/2 <= TARGET_AREA_X_STOP, then vx will reach zero.there is no upper bound on max number of iterations
+            // (because vx will be zero).
+            // To determine the upper bound, realize that all trajectories with 
+            // vy_initial > 0 will have a point I where y = 0 and vy = -vy_initial
+            // If vy_initial is higher than TARGET_AREA_Y_START then we will miss with the next iteration.
+            -TARGET_AREA_Y_START
+        } else {
+            let mut x1 = x;
+            let mut vx_simulated1 = vx_simulated;
+            let maximum_num_iterations = loop { 
+                x1 += vx_simulated1; 
+                if vx_simulated1 > 0 { vx_simulated1 -= 1; }
+                n += 1;
+                if x1 > TARGET_AREA_X_STOP { break n }
+            };
+            (TARGET_AREA_Y_STOP + maximum_num_iterations*(maximum_num_iterations-1)/2)/maximum_num_iterations
+        };
+        
+        for vy in vy_lower_bound ..= vy_upper_bound {
+            // We know that the simulation will take at least minimum_num_iterations.
+            let vy_simulated = vy - minimum_num_iterations;
+            let y = minimum_num_iterations*vy - minimum_vy_diff;
+            if does_probe_hit(x, y, vx_simulated, vy_simulated) {
+                let max_y = vy*(vy+1)/2;
+                if m1 < max_y { m1 = max_y; }
+                m2 += 1;
+            }
+        }
+    }
 
     Solution::new(m1,m2)
 }
