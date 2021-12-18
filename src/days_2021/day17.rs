@@ -26,7 +26,7 @@ pub fn solve(_input: &str) -> Solution {
     // vx is at most TARGET_AREA_X_STOP
     // the cumulative sum of vx must also be at least TARGET_AREA_X_START
     // otherwise we will never reach the target area.
-    let lowest_x_velocity: Position = (1..TARGET_AREA_X_START).skip_while(|x| x*(x+1) < 2*TARGET_AREA_X_START).next().unwrap();
+    let lowest_x_velocity: Position = (1..TARGET_AREA_X_START).find(|x| x*(x+1) >= 2*TARGET_AREA_X_START).unwrap();
     for vx in lowest_x_velocity..=TARGET_AREA_X_STOP {
         // vx * N >= TARGET_AREA_X_START
         // vx * N <= TARGET_AREA_X_STOP
