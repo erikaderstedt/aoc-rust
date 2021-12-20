@@ -2,12 +2,12 @@
 use crate::common::Solution;
 
 const ORIGINAL_SIZE: usize = 100;
-const MARGIN: usize = 60;
+const MARGIN: usize = 52;
 const SIZE: usize = ORIGINAL_SIZE + 2*MARGIN;
 
 type Grid = [[u8;SIZE];SIZE];
 
-fn enhance(grid: &Grid, algorithm: &Vec<u8>) -> Grid {
+fn enhance(grid: &Grid, algorithm: &Vec<u8>, n: usize) -> Grid {
     let mut output = [[0u8;SIZE];SIZE];
     for y in 1..(SIZE-1) {
         for x in 1..(SIZE-1) {
@@ -24,9 +24,8 @@ fn enhance(grid: &Grid, algorithm: &Vec<u8>) -> Grid {
             output[y][x] = algorithm[value];
         }
     }
-    let edge_value = output[2][2];
+    let edge_value = if n % 2 == 0 { 1 } else { 0 };
     for i in 0..SIZE {
-        
         output[0][i] = edge_value;
         output[SIZE-1][i] = edge_value;
         output[i][0] = edge_value;
@@ -53,12 +52,12 @@ pub fn solve(input: &str) -> Solution {
             grid[y+MARGIN][x+MARGIN] = match b { b'#' => 1, b'.' => 0, _ => panic!("Bad format") }
         }
     }
-    for _ in 0..2 {
-        grid = enhance(&grid, &image_enhancement_algorithm);
+    for n in 0..2 {
+        grid = enhance(&grid, &image_enhancement_algorithm, n);
     }
     let m1 = count(&grid);
-    for _ in 2..50 {
-        grid = enhance(&grid, &image_enhancement_algorithm);
+    for n in 2..50 {
+        grid = enhance(&grid, &image_enhancement_algorithm, n);
     }
     let m2 = count(&grid);
 
