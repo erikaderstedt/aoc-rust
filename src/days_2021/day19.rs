@@ -6,27 +6,23 @@ use std::collections::{HashMap,HashSet};
 
 type R = i16;
 
-#[derive(Debug,PartialEq,Clone,Hash,Eq)]
+#[derive(PartialEq,Clone,Hash,Eq)]
 struct Position {
-    x: R,
-    y: R,
-    z: R,
+    x: R, y: R, z: R,
 }
 
-#[derive(Debug,PartialEq,Clone,Hash,Eq)]
+#[derive(PartialEq,Clone,Hash,Eq)]
 struct Delta {
-    dx: R,
-    dy: R,
-    dz: R,
+    dx: R, dy: R, dz: R,
 }
 
 
-#[derive(Debug,PartialEq,Clone,Eq)]
+#[derive(PartialEq,Clone,Eq)]
 struct Scanner {
     id: u32,
     pings: Vec<Position>,
     position: Option<Position>,
-    hashes: HashSet<R>,
+    hashes: HashSet<R>,         // of inter-ping manhattan distances. 
 }
 
 const MIN_OVERLAP: usize = 12;
