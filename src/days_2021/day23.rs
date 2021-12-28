@@ -290,8 +290,8 @@ impl GameState {
                         if let Some(cost) = self.free_path(index, target) {
                             let mut n = self.clone();
                             n.perform_move(index, target);
-                            v.push((n, cost * amphipod.energy_per_step()));
-                            // return vec![(n, cost * amphipod.energy_per_step())];
+                            //v.push((n, cost * amphipod.energy_per_step()));
+                            return vec![(n, cost * amphipod.energy_per_step())];
                         }                
                     }
                 } else {
