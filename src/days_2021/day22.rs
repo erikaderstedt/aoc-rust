@@ -4,7 +4,7 @@ use itertools::Itertools;
 use std::str::FromStr;
 use crate::common::parsed_from_each_line;
 
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Clone,PartialEq,Eq)]
 enum FlipState {
     On,
     Off,
@@ -21,7 +21,7 @@ impl FlipState {
 
 const DIMS: usize = 3;
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Clone)]
 struct Range {
     min: isize,
     max: isize,
@@ -45,7 +45,7 @@ impl Range {
     }
 }
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Clone)]
 struct Cuboid {
     flip: FlipState,
     ranges: [Range;DIMS]
@@ -54,12 +54,11 @@ struct Cuboid {
 impl Cuboid {
 
     fn intersection(&self, other: &Cuboid) -> Option<Cuboid> {
-        let ranges: Vec<Range> = self.ranges.iter()
+        if let Some((a,b,c)) = self.ranges.iter()
                         .zip(other.ranges.iter())
                         .filter_map(|(r1, r2)| r1.intersection(r2))
-                        .collect();
-        if ranges.len() == 3 {
-            Some(Cuboid { flip: other.flip.inverted(), ranges: [ranges[0], ranges[1], ranges[2]] })
+                        .collect_tuple() {
+            Some(Cuboid { flip: other.flip.inverted(), ranges: [a,b,c] })
         } else {
             None
         }
