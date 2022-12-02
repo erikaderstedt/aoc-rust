@@ -6,9 +6,10 @@ use clap::Arg;
 
 mod crate_info;
 // mod days_2015;
-mod days_2018;
+// mod days_2018;
 // mod days_2020;
-mod days_2021;
+//mod days_2021;
+mod days_2022;
 mod common;
 mod grid;
 
@@ -35,7 +36,7 @@ fn main() -> Result<(), std::io::Error> {
     .arg(
         Arg::with_name("year")
             .takes_value(true)
-            .help(r#"Year (2015-2020) to run. If omitted, all years are run."#)
+            .help(r#"Year (2015-2022) to run. If omitted, all years are run."#)
     )
     .arg(
         Arg::with_name("day")
@@ -47,7 +48,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let years = match matches.value_of("year") {
         Some(year) => vec![year],
-        _ => vec!["2015","2018","2020","2021"],
+        _ => vec!["2015","2018","2020","2021", "2022"],
     };
     let multiple_years = years.len() > 1;
 
@@ -56,9 +57,10 @@ fn main() -> Result<(), std::io::Error> {
 
         let solver_getter = match year {
             // "2015" => days_2015::get_solver,
-            "2018" => days_2018::get_solver,
+            // "2018" => days_2018::get_solver,
             // "2020" => days_2020::get_solver,
-            "2021" => days_2021::get_solver,
+            // "2021" => days_2021::get_solver,
+            "2022" => days_2022::get_solver,
             _ => panic!("Year not implemented!"),
         };
 
