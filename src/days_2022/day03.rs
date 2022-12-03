@@ -1,12 +1,12 @@
-// https://adventofcode.com/2022/day/2
+// https://adventofcode.com/2022/day/3
 
 use itertools::Itertools;
 use crate::common::Solution;
 
-fn priority(c: Option<char>) -> usize {
+fn priority(c: char) -> usize {
     match c {
-        Some(c) if c >= 'a' && c <= 'z' => ((c as u8) - ('a' as u8) + 1) as usize,
-        Some(c) if c >= 'A' && c <= 'Z' => ((c as u8) - ('A' as u8) + 27) as usize,
+        c if c >= 'a' && c <= 'z' => ((c as u8) - ('a' as u8) + 1) as usize,
+        c if c >= 'A' && c <= 'Z' => ((c as u8) - ('A' as u8) + 27) as usize,
         _ => 0,
     }
 }
@@ -14,12 +14,12 @@ fn priority(c: Option<char>) -> usize {
 pub fn solve(input: &str) -> Solution {
     let p1: usize = input
         .lines()
-        .map(|line| {
-            let w = line.len();
-            let wh = w >> 1;
-            priority(line
+        .map(|rucksack| {
+            rucksack
                 .chars()
-                .find(|c| line[wh..w].contains(*c)))
+                .find(|c| rucksack[(rucksack.len() >> 1)..].contains(*c))
+                .map(|c| priority(c))
+                .unwrap_or(0)
             })
         .sum();
 
@@ -28,12 +28,14 @@ pub fn solve(input: &str) -> Solution {
         .chunks(3)
         .into_iter()
         .map(|elf_group_iterator| {
-            if let Some((elf1, elf2, elf3)) = elf_group_iterator.collect_tuple() {
-                priority(elf1
-                    .chars()
-                    .find(|c| elf2.contains(*c) && elf3.contains(*c)))
-            } else { 
-                0
+            match elf_group_iterator.collect_tuple() {
+                Some((elf1, elf2, elf3)) => 
+                    elf1
+                        .chars()
+                        .find(|c| elf2.contains(*c) && elf3.contains(*c))
+                        .map(|c| priority(c))
+                        .unwrap_or(0),
+                None => 0
             }
         })
         .sum();
