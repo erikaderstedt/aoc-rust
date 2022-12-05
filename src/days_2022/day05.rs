@@ -28,7 +28,6 @@ fn simulate_with_cratemover_9000(moves: &Vec<Instruction>, stacks: &Vec<VecDeque
     }
 
     top_of_stacks(&stacks)
-
 }
 
 fn simulate_with_cratemover_9001(moves: &Vec<Instruction>, stacks: &mut Vec<VecDeque<u8>>) -> String {
@@ -45,7 +44,10 @@ pub fn solve(input: &str) -> Solution {
     let moves: Vec<Instruction> = input
         .lines()
         .skip_while(|line| !line.starts_with("move"))
-        .filter_map(|m| m.parse::<Instruction>().ok())
+        .filter_map(|m| match m.parse::<Instruction>() {
+                Ok(q) => Some(q),
+                Err(s) => { println!("Error in line '{}': {}", m, s); None },
+            })
         .collect();
 
     let mut stacks = Vec::with_capacity(10);
@@ -74,14 +76,11 @@ impl FromStr for Instruction {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let j: Vec<&str> = s.split(" ").collect();
-        if j.len() != 6 {
-            Err("Malformed line.")
-        } else {
-            let num_crates = j[1].parse::<usize>().map_err(|_| "Invalid number of crates value.")?;
-            let source = j[3].parse::<usize>().map_err(|_| "Invalid source value.")?;
-            let dest = j[5].parse::<usize>().map_err(|_| "Invalid destination value.")?;
-            Ok(Instruction { num_crates, source: source - 1, dest: dest - 1})
-        }
+        let num_crates = s[5..7].trim_end().parse::<usize>().map_err(|_| "Invalid number of crates value.")?;
+        let src_offset = if num_crates > 9 { 13 } else { 12 };
+        let dst_offset = src_offset + 5;
+        let source = s[src_offset..(src_offset+1)].parse::<usize>().map_err(|_| "Invalid source value.")?;
+        let dest = s[dst_offset..(dst_offset+1)].parse::<usize>().map_err(|_| "Invalid destination value.")?;
+        Ok(Instruction { num_crates, source: source - 1, dest: dest - 1})
     }
 }
