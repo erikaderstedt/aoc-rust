@@ -12,12 +12,12 @@ struct Instruction {
     dest: usize
 }
 
-fn top_of_stacks(stacks: &VecDeque<VecDeque<u8>>) -> String {
+fn top_of_stacks(stacks: &Vec<VecDeque<u8>>) -> String {
     let tops: Vec<u8> = stacks.iter().map(|s| s.back().unwrap().clone()).collect();
     str::from_utf8(&tops[..]).unwrap().to_string()
 }
 
-fn simulate_with_cratemover_9000(moves: &Vec<Instruction>, stacks: &VecDeque<VecDeque<u8>>) -> String {
+fn simulate_with_cratemover_9000(moves: &Vec<Instruction>, stacks: &Vec<VecDeque<u8>>) -> String {
     let mut stacks = stacks.clone();
 
     for m in moves.iter() {
@@ -28,17 +28,17 @@ fn simulate_with_cratemover_9000(moves: &Vec<Instruction>, stacks: &VecDeque<Vec
     }
 
     top_of_stacks(&stacks)
+
 }
 
-fn simulate_with_cratemover_9001(moves: &Vec<Instruction>, stacks: &mut VecDeque<VecDeque<u8>>) -> String {
-
+fn simulate_with_cratemover_9001(moves: &Vec<Instruction>, stacks: &mut Vec<VecDeque<u8>>) -> String {
     for m in moves.iter() {
         let num_crates_in_source = stacks[m.source].len();
         let mut p = stacks[m.source].split_off( num_crates_in_source - m.num_crates);
         stacks[m.dest].append(&mut p);
     }
 
-    top_of_stacks(&stacks)
+    top_of_stacks(stacks)
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -48,31 +48,21 @@ pub fn solve(input: &str) -> Solution {
         .filter_map(|m| m.parse::<Instruction>().ok())
         .collect();
 
-    let stacks_flipped: Vec<Vec<Option<u8>>> = 
-    input
-        .lines()
-        .take_while(|line| !line.starts_with(" 1"))
-        .map(|line| {
-            let n = line.len() / CRATE_WIDTH + 1;
-            (0..n)
-                .map(|i| {
-                    let s: &str = &line[(i*CRATE_WIDTH)..];
-                    if s.starts_with("[") {
-                        Some(s.as_bytes()[1])
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        })
-        .collect();
-
-    let mut stacks: VecDeque<VecDeque<u8>> = (0..stacks_flipped[0].len())
-        .map(|i| stacks_flipped.iter()
-            .map(|inner| inner[i].clone()).rev()
-                .filter_map(|x| x)
-                .collect::<VecDeque<u8>>())
-        .collect();
+    let mut stacks = Vec::with_capacity(10);
+    for line in input
+            .lines()
+            .take_while(|line| !line.starts_with(" 1")) {
+        let n = line.len() / CRATE_WIDTH + 1;
+        for i in 0..n {
+            let s: &str = &line[(i*CRATE_WIDTH)..];
+            if s.starts_with("[") {
+                while i >= stacks.len() {
+                    stacks.push(VecDeque::with_capacity(10));
+                }
+                stacks[i].push_front(s.as_bytes()[1])
+            }
+        }
+    }
 
     let p1 = simulate_with_cratemover_9000(&moves, &stacks);
     let p2 = simulate_with_cratemover_9001(&moves, &mut stacks);
