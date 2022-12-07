@@ -8,13 +8,14 @@ const UPDATE_SIZE: usize = 30000000;
 
 fn merge_last_two(v: &mut Vec<usize>) -> usize {
     let sz = v.pop().unwrap();
-    let sz_parent = v.pop().unwrap() + sz;
-    v.push(sz_parent);
+    let c = v.len();
+    v[c - 1] += sz;
     sz
 }
 
 pub fn solve(input: &str) -> Solution {
-    // Our input data does not ls an already ls:d directory
+    // Our input data does not revisit directories. All directories
+    // are completely explored before cd:ing up from them.
     let mut v: Vec<usize> = vec![0];
     let mut completed_directories = vec![];
     for line in input.lines().skip(1) {
@@ -25,7 +26,7 @@ pub fn solve(input: &str) -> Solution {
                 _ => v.push(0),
             },
             "$ ls" | "dir " => {},
-            _ => {
+            _ => { // Regular file.
                 let sz = line.split_once(" ").unwrap().0.parse::<usize>().unwrap();
                 let i = v.pop().unwrap() + sz;
                 v.push(i);
