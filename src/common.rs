@@ -41,11 +41,13 @@ fn read_all<I: Read>(mut source: I) -> std::io::Result<String> {
     source.read_to_string(&mut contents).map(|_u| contents)
 }
 
-pub fn parsed_from_each_line<T: FromStr>(input: &str) -> Vec<T> {
+pub fn parsed_from_each_line<T: FromStr>(input: &str) -> Vec<T> 
+where T::Err: std::fmt::Display
+{
     input.lines().map(|x| 
         match x.parse::<T>() {
             Ok(v) => v,
-            _ => panic!("Bad input"),
+            Err(e) => panic!("Bad input on line '{}': {}", x, e),
         }
     ).collect()
 }
