@@ -8,22 +8,6 @@ enum Command {
     Addx(i32),
 }
 
-impl Command {
-    fn num_cycles(&self) -> i32 {
-        match self {
-            Command::Noop => 1,
-            Command::Addx(_) => 2,
-        }
-    }
-
-    fn modify_register(&self, x: &mut i32) {
-        match self {
-            Command::Addx(v) => *x += v,
-            Command::Noop => {},
-        }
-    }   
-}
-
 const NUM_CYCLES: usize = 240;
 const NUM_CHARS: usize = 8;
 
@@ -35,32 +19,27 @@ fn read_character(grid: &[bool;NUM_CYCLES], index: usize) -> char {
 }
 
 pub fn solve(input: &str) -> Solution {
-    let cmds = input.lines().map(|line| line.parse::<Command>().unwrap());
-
-    let mut grid = [false; NUM_CYCLES];    
-    let mut cycle: i32 = 0;
-    let mut x: i32 = 1;
-    let mut p1: i32 = 0;
-
-    for cmd in cmds {
-        let cycles_in_command = cmd.num_cycles();
-        for i in 0..cycles_in_command {
-            if (cycle % 40).abs_diff(x) <= 1 {
-                grid[cycle as usize] = true;
-            }
-
-            cycle += 1; 
-            if (cycle - 20) % 40 == 0 {
-                p1 += cycle * x;
-            }
-            if i == cycles_in_command - 1 {
-                cmd.modify_register(&mut x);
-            }
-        }
-
-        if cycle > 240 { break; }
-    }
-    
+    let (_, p1, grid) = input
+        .lines()
+        .map(|line| line.parse::<Command>().expect("Parsing error"))
+        .flat_map(|cmd| match cmd {
+            Command::Noop => vec![Command::Noop].into_iter(),
+            Command::Addx(v) => { vec![Command::Noop, Command::Addx(v)].into_iter() }
+        })
+        .zip(1..=NUM_CYCLES)
+        .fold((1i32, 0i32, [false; NUM_CYCLES]),
+            |(x, mut p1_acc, mut grid), (cmd, cycle)| {
+                if (((cycle - 1) as i32) % 40).abs_diff(x) <= 1 {
+                    grid[cycle-1] = true;
+                }
+                if (cycle + 20) % 40 == 0 {
+                    p1_acc += (cycle as i32) * x;
+                }
+                match cmd {
+                    Command::Addx(v) => (x + v, p1_acc, grid),
+                    Command::Noop => (x, p1_acc, grid),
+                }
+        });
     let p2: Vec<u8> = (0..8).map(|i| read_character(&grid, i) as u8).collect();
 
     Solution::new(p1,from_utf8(&p2[..]).unwrap())
@@ -70,12 +49,13 @@ impl FromStr for Command {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.split_once(' ') {            
-            Some((d, n)) if d == "addx" => {
-                let n = n.parse::<i32>().map_err(|_| "Invalid addx argument value.")?;
-                Ok(Command::Addx(n)) },
-            None if s == "noop" => Ok(Command::Noop),
-            _ => Err("Malformed line."),
+        match &s[0..4] {
+            "noop" => Ok(Command::Noop),
+            "addx" => {
+                let n = s[5..].parse::<i32>().map_err(|_| "Invalid addx argument value.")?;
+                Ok(Command::Addx(n))
+            }
+            _ => Err("Unrecognized command")
         }
     }
 }
