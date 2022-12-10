@@ -29,15 +29,15 @@ pub fn solve(input: &str) -> Solution {
                 Direction::Right => knots[0].x += 1,
             };
             if let Some(num_iterations) = (1..10)
-                .take_while(|&i| {
-                    let diff_x = knots[i-1].x - knots[i].x;
-                    let diff_y = knots[i-1].y - knots[i].y;
-                    if diff_x.abs() > 1 || diff_y.abs() > 1 {
-                        knots[i].x += diff_x.signum();
-                        knots[i].y += diff_y.signum();
-                        true
-                    } else { false }})
-                .last() {
+                        .take_while(|&i| {
+                            let diff_x = knots[i-1].x - knots[i].x;
+                            let diff_y = knots[i-1].y - knots[i].y;
+                            if diff_x.abs() > 1 || diff_y.abs() > 1 {
+                                knots[i].x += diff_x.signum();
+                                knots[i].y += diff_y.signum();
+                                true
+                            } else { false }})
+                        .last() {
                 visited_p1.insert(knots[2-1]);
                 if num_iterations == 9 {
                     visited_p2.insert(knots[10-1]);

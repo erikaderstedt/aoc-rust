@@ -51,3 +51,37 @@ where T::Err: std::fmt::Display
         }
     ).collect()
 }
+
+pub fn read_5x6_character_off_grid(grid: &[bool;30]) -> char {
+    let mut v: u32 = 0;
+    for i in 0..30 {
+        if grid[i] { v += 1 << i; }
+    }
+    match v {
+        0x1E109C2F => 'E',
+        0x0C94210C => 'J',
+        0x0C908526 => 'C',
+        0x02109C2F => 'F',
+        0x0213A527 => 'P',
+        0x1C968526 => 'G',
+        0x1E108421 => 'L',
+        0x1294BD29 => 'H',
+        v => {
+            for y in 0..6 {
+                for x in 0..5 {
+                    if !grid[y*5 + x] {
+                        print!(".");
+                    } else {
+                        print!("#");
+                    }
+                }
+                println!("");
+            }
+            panic!("Unrecognized character, value {}", v);
+        },
+    }
+}
+
+// pub fn read_letters_off_grid(grid: &[bool;240]) -> String {
+
+// }
