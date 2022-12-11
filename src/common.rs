@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Read;
+use std::num;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -52,36 +53,56 @@ where T::Err: std::fmt::Display
     ).collect()
 }
 
-pub fn read_5x6_character_off_grid(grid: &[bool;30]) -> char {
-    let mut v: u32 = 0;
-    for i in 0..30 {
-        if grid[i] { v += 1 << i; }
+pub fn read_5x6_characters_off_grid(grid: &Vec<bool>) -> Result<String, &str> {
+    if grid.len() % 30 != 0 {
+        return Err("Grid size must be a multiple of 30.")
     }
-    match v {
-        0x1E109C2F => 'E',
-        0x0C94210C => 'J',
-        0x0C908526 => 'C',
-        0x02109C2F => 'F',
-        0x0213A527 => 'P',
-        0x1C968526 => 'G',
-        0x1E108421 => 'L',
-        0x1294BD29 => 'H',
-        v => {
-            for y in 0..6 {
-                for x in 0..5 {
-                    if !grid[y*5 + x] {
-                        print!(".");
-                    } else {
-                        print!("#");
-                    }
+    let num_chars = grid.len() / 30;
+    let width = grid.len() / 6;
+    Ok((0..num_chars)
+        .map(|j| {
+            let mut v: u32 = 0;
+            let mut i = 0;
+            for r in 0..6 {
+                for c in 0..5 {
+                    if grid[r*width + j*5 + c] { v += 1 << i; }
+                    i += 1;
                 }
-                println!("");
             }
-            panic!("Unrecognized character, value {}", v);
-        },
-    }
+            match v {
+                0x1297A526 => 'A',
+                0x0E949D27 => 'B',
+                0x0C908526 => 'C',
+                0x1E109C2F => 'E',
+                0x02109C2F => 'F',
+                0x1C968526 => 'G',
+                0x1294BD29 => 'H',
+                0x1C42108E => 'I',
+                0x0C94210C => 'J',
+                0x12528CA9 => 'K',
+                0x1E108421 => 'L',
+                0x0C94A526 => 'O',
+                0x0213A527 => 'P',
+                0x1253A527 => 'R',
+                0x0E83042E => 'S',
+                0x0C94A529 => 'U',
+                0x08422A31 => 'Y',
+                0x1E11110F => 'Z',
+                v => {
+                    println!("Unrecognized character, value 0x{:08X}", v);
+                    for y in 0..6 {
+                        for x in 0..5 {
+                            if !grid[y*5 + x] {
+                                print!(" ");
+                            } else {
+                                print!("█");
+                            }
+                        }
+                        println!("");
+                    }
+                    '?'
+                },
+            }
+        })
+        .collect())
 }
-
-// pub fn read_letters_off_grid(grid: &[bool;240]) -> String {
-
-// }

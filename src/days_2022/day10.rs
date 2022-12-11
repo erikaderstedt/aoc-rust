@@ -1,7 +1,7 @@
 // https://adventofcode.com/2022/day/10
 
-use crate::common::{Solution, read_5x6_character_off_grid};
-use std::str::{FromStr, from_utf8};
+use crate::common::{Solution, read_5x6_characters_off_grid};
+use std::str::FromStr;
 
 enum Command {
     Noop,
@@ -9,40 +9,34 @@ enum Command {
 }
 
 const NUM_CYCLES: usize = 240;
-const NUM_CHARS: usize = 8;
-
-fn read_character(grid: &[bool;NUM_CYCLES], index: usize) -> char {
-    let mut a = [false; 30];
-    for i in 0..30 { a[i] = grid[(i/5) * 5 * NUM_CHARS + index*5 + (i % 5)]; }
-
-    read_5x6_character_off_grid(&a)
-}
+const ROW_SIZE: i32 = 40;
 
 pub fn solve(input: &str) -> Solution {
-    let (_, p1, grid) = input
+
+    let state: Vec<(i32, usize)> = input
         .lines()
         .map(|line| line.parse::<Command>().expect("Parsing error"))
-        .flat_map(|cmd| match cmd {
-            Command::Noop => vec![Command::Noop].into_iter(),
-            Command::Addx(v) => { vec![Command::Noop, Command::Addx(v)].into_iter() }
-        })
+        .scan(1i32, |x, cmd| match cmd {
+                Command::Noop => Some(vec![x.clone()]),
+                Command::Addx(v) => {
+                    *x += v;
+                    Some(vec![*x-v, *x-v])
+            }})
+        .flatten()
         .zip(1..=NUM_CYCLES)
-        .fold((1i32, 0i32, [false; NUM_CYCLES]),
-            |(x, mut p1_acc, mut grid), (cmd, cycle)| {
-                if (((cycle - 1) as i32) % 40).abs_diff(x) <= 1 {
-                    grid[cycle-1] = true;
-                }
-                if (cycle + 20) % 40 == 0 {
-                    p1_acc += (cycle as i32) * x;
-                }
-                match cmd {
-                    Command::Addx(v) => (x + v, p1_acc, grid),
-                    Command::Noop => (x, p1_acc, grid),
-                }
-        });
-    let p2: Vec<u8> = (0..8).map(|i| read_character(&grid, i) as u8).collect();
+        .collect();
 
-    Solution::new(p1,from_utf8(&p2[..]).unwrap())
+    let p1: i32 = state
+        .iter()
+        .skip(20-1)
+        .step_by(ROW_SIZE as usize)
+        .map(|(x,cycle)| (*cycle as i32) * x)
+        .sum();
+
+    let grid: Vec<bool> = state.iter().map(|(x,cycle)| (((*cycle as i32)-1) % ROW_SIZE).abs_diff(*x) <= 1).collect();
+    let p2 = read_5x6_characters_off_grid(&grid).expect("Invalid grid size");
+
+    Solution::new(p1,p2)
 }
 
 impl FromStr for Command {
