@@ -3,9 +3,9 @@ use regex::Regex;
 use std::collections::HashMap;
 
 
-pub fn solve(lines: &[String]) -> Solution {
+pub fn solve(input: &str) -> Solution {
     let re = Regex::new(r"^(\S+)\)(\S+)$").unwrap();
-    let orbits: HashMap<String,String> = lines.iter().filter_map(|x| {
+    let orbits: HashMap<String,String> = input.lines().filter_map(|x| {
         match re.captures_iter(x).next() {
             Some(c1) => Some((c1[2].to_string(), c1[1].to_string())),
             None => None,
@@ -39,5 +39,5 @@ pub fn solve(lines: &[String]) -> Solution {
     // the above distance is the number of steps to go from YOU to SAN, but that isn't the question.
     distance = distance - 2; 
 
-    (num_orbits.to_string(), distance.to_string())
+    Solution::new(num_orbits, distance)
 }

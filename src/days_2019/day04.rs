@@ -11,7 +11,7 @@ fn digits(num: &u32) -> [u32;6] {
     ]
 }
 
-pub fn solve(_lines: &[String]) -> Solution {
+pub fn solve(_input: &str) -> Solution {
     let num_matches = (165432..707912).filter(|n| {
         let d = digits(n);
         let two_adjacent_are_the_same = (1..6).any(|i| d[i-1] == d[i]);
@@ -31,5 +31,5 @@ pub fn solve(_lines: &[String]) -> Solution {
         two_adjacent_are_the_same && not_smaller
     }).count();
 
-    (num_matches.to_string(), num_matches_rejecting_longer_groups.to_string())
+    Solution::new(num_matches, num_matches_rejecting_longer_groups)
 }

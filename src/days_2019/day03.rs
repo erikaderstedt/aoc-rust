@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::common::Solution;
 use std::str::FromStr;
 use std::collections::HashSet;
@@ -32,9 +34,10 @@ fn all_traversed_coordinates(wire: &Vec<WireSegment>) -> Vec<(i32,i32)> {
     coords
 }
 
-pub fn solve(lines: &[String]) -> Solution {
-    let wire1: Vec<WireSegment> = lines[0].split(",").map(|x| WireSegment::from_str(x).expect("Bad wire segment")).collect();
-    let wire2: Vec<WireSegment> = lines[1].split(",").map(|x| WireSegment::from_str(x).expect("Bad wire segment")).collect();
+pub fn solve(input: &str) -> Solution {
+    let lines: (&str,&str) = input.lines().take(2).collect_tuple().unwrap();
+    let wire1: Vec<WireSegment> = lines.0.split(",").map(|x| WireSegment::from_str(x).expect("Bad wire segment")).collect();
+    let wire2: Vec<WireSegment> = lines.1.split(",").map(|x| WireSegment::from_str(x).expect("Bad wire segment")).collect();
 
     let traversed_by1 = all_traversed_coordinates(&wire1);
     let traversed_by2 = all_traversed_coordinates(&wire2);
@@ -48,7 +51,7 @@ pub fn solve(lines: &[String]) -> Solution {
         traversed_by2.iter().position(|x| p == x).unwrap() + 1 
     }).min().unwrap();
     
-    (nearest.to_string(), fastest.to_string())
+    Solution::new(nearest, fastest)
 }
 
 impl FromStr for Direction {

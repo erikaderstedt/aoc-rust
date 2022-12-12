@@ -1,8 +1,8 @@
 use crate::common::Solution;
 use itertools::Itertools;
 
-pub fn solve(lines: &[String]) -> Solution {
-    let data: Vec<u8> = lines[0].chars().map(|x| x.to_string().parse::<u8>().expect("Not a digit")).collect();
+pub fn solve(input: &str) -> Solution {
+    let data: Vec<u8> = input.lines().next().unwrap().chars().map(|x| x.to_string().parse::<u8>().expect("Not a digit")).collect();
     let width: usize = 25;
     let height: usize = 6;
     let chunk_size: usize = width * height;
@@ -38,5 +38,5 @@ pub fn solve(lines: &[String]) -> Solution {
     }).join("\n");
     rendered_image.insert(0, '\n');
     
-    (num_1_times_num_2.to_string(), rendered_image.to_string())
+    Solution::new(num_1_times_num_2, rendered_image)
 }

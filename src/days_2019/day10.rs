@@ -1,9 +1,9 @@
 use crate::common::Solution;
 
-pub fn solve(lines: &[String]) -> Solution {
+pub fn solve(input: &str) -> Solution {
     // Convert grid into a set of asteroid positions.
     let mut asteroid_positions: Vec<(i64,i64)> = Vec::new();
-    for (y,row_data) in lines.iter().enumerate() {
+    for (y,row_data) in input.lines().enumerate() {
         for (x, ch) in row_data.chars().enumerate() {
             if ch == '#' {
                 asteroid_positions.push((x as i64,y as i64));
@@ -46,5 +46,6 @@ pub fn solve(lines: &[String]) -> Solution {
     }).max().unwrap();
 
 
-    (number_of_visible_asteroids_at_best_position.to_string(), "?".to_string())
+    Solution::new(number_of_visible_asteroids_at_best_position, 
+        "?")
 }
