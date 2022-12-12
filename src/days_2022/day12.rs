@@ -1,81 +1,34 @@
 // https://adventofcode.com/2022/day/10
 
 use crate::common::{Solution};
-use itertools::Itertools;
-use std::hash::Hash;
 use pathfinding::prelude::bfs;
-// use std::collections::HashMap;
-use std::fmt;
+use crate::grid::{Grid,GridElement};
 
 const START: u8 = 'S' as u8;
 const END: u8 = 'E' as u8;
 const LOWEST: u8 = 'a' as u8;
 const HIGHEST: u8 = 'z' as u8;
 
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct Pos {
-    x: usize,
-    y: usize,
-}
-
-impl fmt::Debug for Pos {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({},{})", self.x, self.y)
-    }
-}
-
-impl Pos {
-    fn from(x: usize, y: usize) -> Pos { Pos { x, y }}
-}
-
-fn find_path<FS>(dtm: &Vec<Vec<u8>>, start: &Pos, end: FS, climbing: bool) -> Option<usize>
-where
-    FS: FnMut(&Pos) -> bool,
-{
-    let width = dtm[0].len();
-    let height = dtm.len();
-
-    bfs(start, |p| {
-        let mut v: Vec<Pos> = Vec::with_capacity(4);
-        let compare = match dtm[p.y][p.x] {
-            START => LOWEST,
-            END => HIGHEST,
-            i => i,
-        };
-        if p.x > 0 && ((climbing && dtm[p.y][p.x-1] <= compare + 1) || (!climbing && dtm[p.y][p.x-1] >= compare - 1)) {
-            v.push(Pos { x: p.x - 1, y: p.y})
-        }
-        if p.x < width - 1 && ((climbing && dtm[p.y][p.x+1] <= compare + 1) || (!climbing && dtm[p.y][p.x+1] >= compare - 1)) {
-            v.push(Pos { x: p.x + 1, y: p.y})
-        }
-        if p.y > 0 && ((climbing && dtm[p.y-1][p.x] <= compare + 1) || (!climbing && dtm[p.y-1][p.x] >= compare - 1)) {
-            v.push(Pos { x: p.x, y: p.y - 1})
-        }
-        if p.y < height - 1 && ((climbing && dtm[p.y+1][p.x] <= compare + 1) || (!climbing && dtm[p.y+1][p.x] >= compare - 1)) {
-            v.push(Pos { x: p.x, y: p.y + 1})
-        }
-        v
-    }, end).map(|v| v.len() - 1)
+impl GridElement for u8 {
+    fn from_char(c: &char) -> Option<Self> { Some(*c as u8) }
+    fn to_char(&self) -> char { *self as char }
 }
 
 pub fn solve(input: &str) -> Solution {
-    let dtm: Vec<Vec<u8>> = input.lines()
-        .map(|line| line.as_bytes().to_vec())
-        .collect();
+    let dtm: Grid<u8> = Grid::load(input);
+    let start = dtm.find(&START).expect("Unable to find starting position");
+    let end = dtm.find(&END).expect("Unable to find ending position");
 
-    let x = dtm.iter().find_map(|line| line.iter().find_position(|&&c| c == START)).unwrap().0;
-    let y = dtm.iter().find_position(|line| line.contains(&START)).unwrap().0;
-    let target_x = dtm.iter().find_map(|line| line.iter().find_position(|&&c| c == END)).unwrap().0;
-    let target_y = dtm.iter().find_position(|line| line.contains(&END)).unwrap().0;
+    let p1 = bfs(&start, |p| 
+        dtm.neighbor_positions_satisfying_condition(p, |current, n| {
+            let compare: u8 = if *current == START { LOWEST } else { *current };
+            *n <= compare + 1 })
+        , |p| dtm[p] == END).map(|v| v.len() - 1).expect("Unable to reach end position");
+    let p2 = bfs(&end, |p| 
+        dtm.neighbor_positions_satisfying_condition(p, |current, n| {
+            let compare: u8 = if *current == END { HIGHEST } else { *current };
+            *n >= compare - 1 })
+        , |p| match dtm[p] { START | LOWEST => true, _ => false }).map(|v| v.len() - 1).expect("Unable to reach end position");
 
-    let starting_pos = Pos::from(x, y);            
-    let goal_pos = Pos { x: target_x, y: target_y };
-    let p1 = find_path(&dtm, &starting_pos, |p| *p == goal_pos, true).expect("Unable to reach E");
-    let p2 = find_path(&dtm, &goal_pos, |p| 
-        match dtm[p.y][p.x] {
-            START | LOWEST => true,
-            _ => false,
-        }, false).expect("Unable to reach any 'a'.");
-    
     Solution::new(p1,p2)
 }

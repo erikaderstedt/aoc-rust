@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::Read;
-use std::num;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
