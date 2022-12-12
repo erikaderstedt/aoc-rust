@@ -28,8 +28,7 @@ struct Monkey {
     items: Vec<WorryLevel>,
     operation: Operation,
     modulo_test: WorryLevel,
-    if_true_throw_to: usize,
-    if_false_throw_to: usize,
+    throw_to: (usize, usize),
 }
 
 fn simulate<F>(mut monkeys: Vec<Monkey>, op: F, num_rounds: usize) -> usize
@@ -39,16 +38,15 @@ fn simulate<F>(mut monkeys: Vec<Monkey>, op: F, num_rounds: usize) -> usize
     let mut inspections = vec![0; num_monkeys];
     for _round in 0..num_rounds {
         for i in 0..num_monkeys {
-            inspections[i] += monkeys[i].items.len();
-            let if_true = monkeys[i].if_true_throw_to;
-            let if_false = monkeys[i].if_false_throw_to;
-            let modulo_test = monkeys[i].modulo_test;               
-        
-            while let Some(worry_level) = monkeys[i].items.pop() {
-                let worry_level = op(monkeys[i].operation.apply(worry_level));
-                let idx = if worry_level % modulo_test == 0 { if_true } else { if_false };
+            let num_items = monkeys[i].items.len();
+            inspections[i] += num_items;
+            for item_index in 0..num_items {
+                let monkey = &monkeys[i];
+                let worry_level = op(monkey.operation.apply(monkey.items[item_index]));
+                let idx = if worry_level % monkey.modulo_test == 0 { monkey.throw_to.0 } else { monkey.throw_to.1 };
                 monkeys[idx].items.push(worry_level);
             }
+            monkeys[i].items.clear()
         }
     }
 
@@ -76,10 +74,11 @@ impl FromStr for Monkey {
             .collect();
         let (op, constant) = lines[2].trim().split(' ').skip(4).collect_tuple()
             .ok_or("Unable to parse operation")?;        
-        let operation = match op {
-            "+" => Ok(Operation::Add(constant.parse::<WorryLevel>().unwrap())),
-            "*" if constant == "old" => Ok(Operation::Square),
-            "*" => Ok(Operation::Multiply(constant.parse::<WorryLevel>().unwrap())),
+        let operation = match (op, constant == "old") {
+            ("+", true) => Ok(Operation::Multiply(2)),
+            ("+", false) => Ok(Operation::Add(constant.parse::<WorryLevel>().unwrap())),
+            ("*", true) => Ok(Operation::Square),
+            ("*", false) => Ok(Operation::Multiply(constant.parse::<WorryLevel>().unwrap())),
             _ => Err("Unrecognized operation"),
         }?;
         let modulo_test = lines[3].trim().split(' ').skip(3).next().unwrap().parse::<WorryLevel>().map_err(|_| "Invalid modulo value")?;
@@ -89,8 +88,7 @@ impl FromStr for Monkey {
             items,
             operation,
             modulo_test,
-            if_true_throw_to,
-            if_false_throw_to,
+            throw_to: (if_true_throw_to, if_false_throw_to),
         })
     }
 }
