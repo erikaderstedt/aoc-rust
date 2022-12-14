@@ -88,20 +88,20 @@ impl<T: GridElement> Grid<T> {
     //     GridIterator { row: 0, col: 0, min_col:0, max_col: self.cols, max_row: self.rows }
     // }
 
-    // pub fn display(&self) {
-    //     for row in 0..self.rows {
-    //         let s: String = (0..self.cols).map(|column| -> char { 
-    //             let p = Position { row, column };
-    //             self.get(&p).unwrap().to_char()
-    //         }).collect();
-    //         println!("{}", s);
-    //     }
-    // }
+    #[allow(dead_code)]
+    pub fn display(&self) {
+        for row in 0..self.rows {
+            let s: String = (0..self.cols).map(|column| -> char { 
+                let p = Position { row, column };
+                self.get(&p).unwrap().to_char()
+            }).collect();
+            println!("{}", s);
+        }
+    }
 
     // Iterate over grid elements of a certain type.
     // Iterate over all grid points together with position
 
-    // 
     pub fn neighbor_positions_satisfying_condition<F>(&self, position: &Position, include_neighbor: F) -> Vec<Position> 
         where F: Copy + FnOnce(&T,&T) -> bool    
     {
@@ -129,14 +129,14 @@ impl<T: GridElement> Grid<T> {
     //     n
     // }
 
-    // pub fn get(&self, p: &Position) -> Option<T> {
-    //     let i = p.row * self.cols + p.column;
-    //     if p.row < self.rows && p.column < self.cols && i < self.locations.len() {
-    //         Some(self.locations[i].clone())
-    //     } else {
-    //         None
-    //     }
-    // }
+    pub fn get(&self, p: &Position) -> Option<T> {
+        let i = p.row * self.cols + p.column;
+        if p.row < self.rows && p.column < self.cols && i < self.locations.len() {
+            Some(self.locations[i].clone())
+        } else {
+            None
+        }
+    }
 }
 
 impl<T: GridElement> Index<&Position> for Grid<T> {

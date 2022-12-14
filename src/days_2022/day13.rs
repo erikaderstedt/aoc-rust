@@ -48,7 +48,7 @@ impl PartialOrd for Packet {
 
 pub fn solve(input: &str) -> Solution {
 
-    let mut packets: Vec<Packet> = input
+    let packets: Vec<Packet> = input
         .lines()
         .filter(|line| line.len() > 0)
         .map(|line| line.parse::<Packet>().unwrap())
@@ -64,18 +64,10 @@ pub fn solve(input: &str) -> Solution {
     let divider_packet1 = "[[2]]".parse::<Packet>().unwrap();
     let divider_packet2 = "[[6]]".parse::<Packet>().unwrap();
 
-    packets.push(divider_packet1.clone());
-    packets.push(divider_packet2.clone());
-    packets.sort();
+    let p2 = (packets.iter().filter(|p| (*p).cmp(&divider_packet1) == Ordering::Less).count() + 1) *
+             (packets.iter().filter(|p| (*p).cmp(&divider_packet2) == Ordering::Less).count() + 2);
 
-    let p2: usize = packets
-        .iter()
-        .enumerate()
-        .filter(|p| *p.1 == divider_packet1 || *p.1 == divider_packet2)
-        .map(|p| p.0 + 1)
-        .product();
-
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }
 
 impl FromStr for Packet {
@@ -85,45 +77,34 @@ impl FromStr for Packet {
         let b = s.as_bytes();
         if b[0] != OPENING_BRACE {
             let n = s.parse::<u32>().map_err(|_| "Invalid integer literal")?;
-
             Ok(Packet::Int(n))
         } else {
             if b[1] == CLOSING_BRACE {
                 Ok(Packet::List(vec![]))
             } else {
                 Ok(Packet::List(
-                    CommaSeparatedIterator::new(&b[1..])
-                        .map(|(start,end)| std::str::from_utf8(&b[(start+1)..(end+1)]).unwrap().parse::<Packet>())
+                    CommaSeparatedIterator::new(&b)
+                        .map(|(start,end)| std::str::from_utf8(&b[start..end]).unwrap().parse::<Packet>())
                         .collect::<Result<Vec<Packet>,Self::Err>>()
                         .map_err(|_| "Unable to parse packet list.")?                        
                     ))
             }
         }
-
     }
 }
 
 pub struct CommaSeparatedIterator<'a> {
     previous: usize,
     index: usize,
-    final_index: usize,
     brace_level: i32,
     byte_array: &'a [u8],
 }
 
 impl<'a> CommaSeparatedIterator<'a> {
     fn new(s: &'a [u8]) -> Self {
-        let final_index = s.iter()
-            .enumerate()
-            .scan(1, |brace_count, (i, c)| 
-                    match *c {
-                        OPENING_BRACE => { *brace_count += 1; Some(i + 1) },
-                        CLOSING_BRACE => { *brace_count -= 1; if *brace_count == 0 { None } else { Some(i + 1) } },
-                        _ => Some(i + 1)
-                    })
-            .last()
-            .unwrap_or(s.len());
-        Self { previous: 0, index: 0, brace_level: 0, final_index, byte_array: s }
+        debug_assert!(s[0] == OPENING_BRACE, "Array must begin with an opening brace.");
+        debug_assert!(s[s.len()-1] == CLOSING_BRACE, "Array must end with a closing brace.");
+        Self { previous: 1, index: 1, brace_level: 0 , byte_array: s }
     }
 }
 
@@ -131,7 +112,7 @@ impl<'a> Iterator for CommaSeparatedIterator<'a> {
     type Item = (usize,usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.index < self.final_index {
+        while self.index < self.byte_array.len() - 1 {
             match self.byte_array[self.index] {
                 OPENING_BRACE => { self.brace_level += 1 },
                 CLOSING_BRACE => { self.brace_level -= 1; },
