@@ -68,29 +68,13 @@ pub fn solve(input: &str) -> Solution {
 
         bottom = bottom.max(groups.iter().map(|g| g.row).max().unwrap());
 
-        assert!(groups.len() >= 2, "Not enough groups");
-        let mut i = 1;
-        let mut current = groups[0].clone();
-        let mut target = groups[1].clone();
-        loop {
-            // Draw current and move one step to target
-            cave[&current] = CaveItem::Rock;
-            if current.column > target.column { current.column -= 1; }
-            else if current.column < target.column { current.column += 1; }
-
-            if current.row > target.row { current.row -= 1; }
-            else if current.row < target.row { current.row += 1; }
-
-            if current == target {
-                i += 1;
-                if i < groups.len() {
-                    target = groups[i].clone();
-                } else {
-                    break;
+        for g in groups.windows(2) {
+            for row in g[0].row.min(g[1].row)..=g[0].row.max(g[1].row) {
+                for column in g[0].column.min(g[1].column)..=g[0].column.max(g[1].column) {
+                    cave[& Position { column, row }] = CaveItem::Rock;
                 }
             }
         }
-        cave[&target] = CaveItem::Rock;
     }
 
     let p1 = add_sand_until_it_falls_off(&mut cave);
