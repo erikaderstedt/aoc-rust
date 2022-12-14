@@ -28,23 +28,6 @@ fn introduce_sand(cave: &mut Grid<CaveItem>, at: Position) -> bool {
                 }
             }
         }
-        // let below = Position { column: p.column, row: p.row + 1 };
-        // if cave[&below] == CaveItem::Air {
-        //     p = below;
-        // } else {
-        //     let below_to_left = Position { column: p.column - 1, row: p.row + 1 };
-        //     if cave[&below_to_left] == CaveItem::Air {
-        //         p = below_to_left.clone();
-        //     } else {
-        //         let below_to_right = Position { column: p.column + 1, row: p.row + 1 };
-        //         if cave[&below_to_right] == CaveItem::Air {
-        //             p = below_to_right.clone();
-        //         } else {
-        //             cave[&p] = CaveItem::Sand;
-        //             return true;
-        //         }
-        //     }
-        // }
     }
 }
 
