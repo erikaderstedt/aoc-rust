@@ -1,5 +1,6 @@
 // https://adventofcode.com/2022/day/14
 use crate::common::Solution;
+use std::ops::Range;
 
 const X_OFFSET: usize = 468;
 const HEIGHT: usize = 170;
@@ -12,93 +13,78 @@ const AIR: u8 = 0;
 const SAND: u8 = 1;
 const ROCK: u8 = 2;
 
-struct SandPourer {
-    cave: [u8; WIDTH*HEIGHT],
-    left_spill_point: Option<usize>,
-    right_spill_point: Option<usize>,
-    added_sand: usize,
+type Cave = [u8; WIDTH*HEIGHT];
+
+fn add_single_grain(cave: &mut Cave, mut x: usize, mut y: usize) -> bool {
+    loop { 
+        y += 1;
+        if y == HEIGHT {
+            return false;
+        }
+        
+        if cave[y*WIDTH + x] != AIR {
+            if cave[y*WIDTH + x - 1] != AIR {
+                if cave[y*WIDTH + x + 1] != AIR {
+                    cave[(y-1)*WIDTH + x] = SAND;
+                    return true
+                } else {
+                    x += 1;
+                }
+            } else {
+                x -= 1;
+            }
+        }
+    }
 }
 
-impl SandPourer {
-
-    fn new(cave: [u8; WIDTH*HEIGHT]) -> SandPourer { SandPourer { cave, left_spill_point: None, right_spill_point: None, added_sand: 0 }}
-
-    fn add_sand_until_full(&mut self, x: usize, y: usize) {
-        if self.cave[(y+1)*WIDTH + x] == AIR {
-            self.add_sand_until_full(x, y+1);
-        }
-        if x > 0 {
-            if self.cave[(y+1)*WIDTH + x - 1] == AIR {
-                self.add_sand_until_full(x-1, y+1);
-            }
-        } else { 
-            self.left_spill_point = Some(if let Some(previous) = self.left_spill_point {
-                previous.min(y+1)
-            } else { 
-                y+1
-            });
-        }
-        if x < WIDTH - 1 {
-            if self.cave[(y+1)*WIDTH + x + 1] == AIR {
-                self.add_sand_until_full(x+1, y+1);
-            }    
-        } else {
-            self.right_spill_point = Some(if let Some(previous) = self.right_spill_point {
-                previous.min(y+1)
-            } else { 
-                y+1
-            });
-        }
-        self.cave[y*WIDTH + x] = SAND;
-        self.added_sand += 1;
+fn add_sand_until_it_falls_off(cave: &mut Cave) -> usize {
+    let mut added_sand = 0;
+    while add_single_grain(cave, START_X, START_Y) {
+        added_sand += 1;
     }
+    added_sand
+}
 
-    fn total_sand_added(&self, bottom: usize) -> usize {
-        self.left_spill_point.map(|y| (bottom - y) * ((bottom - y) + 1) / 2).unwrap_or(0) +
-        self.right_spill_point.map(|y| (bottom - y) * ((bottom - y) + 1) / 2).unwrap_or(0) +
-        self.added_sand
-    }
-
-    fn add_single_grain(&mut self, mut x: usize, mut y: usize) -> bool {
-        loop { 
-            y += 1;
-            if y == HEIGHT {
-                return false;
-            }
-            
-            if self.cave[y*WIDTH + x] != AIR {
-                if self.cave[y*WIDTH + x - 1] != AIR {
-                    if self.cave[y*WIDTH + x + 1] != AIR {
-                        self.cave[(y-1)*WIDTH + x] = SAND;
-                        return true
-                    } else {
-                        x += 1;
-                    }
-                } else {
-                    x -= 1;
-                }
-            }
+fn add_rock_path_to_cave(cave: &mut Cave, path: &[(usize,usize)]) {
+    let start = path[0];
+    let stop = path[1];
+    for row in start.1.min(stop.1)..=start.1.max(stop.1) {
+        for column in start.0.min(stop.0)..=start.0.max(stop.0) {
+            cave[row*WIDTH + column] = ROCK;
         }
     }
-    
-    fn add_sand_until_it_falls_off(&mut self) -> usize {
-        while self.add_single_grain(START_X, START_Y) {
-            self.added_sand += 1;
-        }
-        self.added_sand
-    }
+}
 
-    fn add_rock_path_to_cave(&mut self, path: &[(usize,usize)]) {
-        for row in path[0].1.min(path[1].1)..=path[0].1.max(path[1].1) {
-            for column in path[0].0.min(path[1].0)..=path[0].0.max(path[1].0) {
-                self.cave[row*WIDTH + column] = ROCK;
-            }
+fn iterate_rock_ranges(cave: &Cave, row: usize) -> RockRangeIterator { 
+    RockRangeIterator { cave, row, index: 0 }
+}
+
+struct RockRangeIterator<'a> {
+    cave: &'a Cave,
+    row: usize,
+    index: usize,
+}
+
+impl<'a> Iterator for RockRangeIterator<'a> {
+    type Item = Range<usize>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut j = (self.index..WIDTH)
+            .skip_while(|i| self.cave[self.row * WIDTH + i] != ROCK)
+            .take_while(|i| self.cave[self.row * WIDTH + i] == ROCK);
+        match j.next() {
+            Some(i1) => {
+                let i2 = j.last().unwrap_or(i1);
+                self.index = i2 + 1;
+                Some(Range { start: i1, end: i2 + 1 })
+            },
+            None => None,
         }
     }
 }
 
 pub fn solve(input: &str) -> Solution {
-    let mut pourer = SandPourer::new([AIR; WIDTH*HEIGHT]);
+    let mut cave = [AIR; WIDTH*HEIGHT];
 
     let mut bottom = 0;
     for line in input.lines() {
@@ -117,16 +103,34 @@ pub fn solve(input: &str) -> Solution {
         bottom = bottom.max(rock_paths.iter().map(|g| g.1).max().unwrap());
 
         for rock_path in rock_paths.windows(2) { 
-            pourer.add_rock_path_to_cave(rock_path) 
+            add_rock_path_to_cave(&mut cave, rock_path) 
         }
     }
 
-    let p1 = pourer.add_sand_until_it_falls_off();
+    let p1 = add_sand_until_it_falls_off(&mut cave);
 
-    pourer.add_rock_path_to_cave(&[(0,bottom + 2), (WIDTH - 1,bottom + 2)]);
-    pourer.add_sand_until_full(START_X, START_Y);
-
-    let p2 = pourer.total_sand_added(bottom + 2);
+    let mut rock_ranges: Vec<Range<usize>> = Vec::new();
+    let mut p2: usize = (bottom + 2) * (bottom + 2);
+    for y in 1..(bottom + 2) {
+        rock_ranges = rock_ranges.iter_mut()
+            .filter(|r| r.len() > 2)
+            .map(|r| Range { start: r.start + 1, end: r.end - 1 })
+            .chain(iterate_rock_ranges(&cave, y))
+            .collect();
+        rock_ranges.sort_by_key(|r| r.start);
+        if rock_ranges.len() > 1 {
+            let mut i = 0;
+            while i < rock_ranges.len() - 1 {
+                if rock_ranges[i + 1].start <= rock_ranges[i].end {
+                    rock_ranges[i].end = rock_ranges[i+1].end.max(rock_ranges[i].end);
+                    rock_ranges.remove(i + 1);
+                } else {
+                    i += 1;
+                }
+            }
+        }
+        p2 -= rock_ranges.iter().map(|r| r.len()).sum::<usize>();
+    }
 
     Solution::new(p1,p2)
 }
