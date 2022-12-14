@@ -5,10 +5,6 @@ const X_OFFSET: usize = 300;
 const HEIGHT: usize = 170;
 const WIDTH: usize = 400;
 
-// const X_OFFSET: usize = 480;
-// const HEIGHT: usize = 20;
-// const WIDTH: usize = 40;
-
 const START_X: usize = 500 - X_OFFSET;
 const START_Y: usize = 0;
 
@@ -17,7 +13,23 @@ const AIR: u8 = 0;
 const SAND: u8 = 1;
 const ROCK: u8 = 2;
 
-fn introduce_sand(cave: &mut Cave, mut x: usize, mut y: usize) -> bool {
+
+fn add_sand_until_full(cave: &mut Cave, x: usize, y: usize) -> usize {
+    let mut added_sand = 0;
+    if cave[(y+1)*WIDTH + x] == AIR {
+        added_sand += add_sand_until_full(cave, x, y+1);
+    }
+    if cave[(y+1)*WIDTH + x - 1] == AIR {
+        added_sand += add_sand_until_full(cave, x-1, y+1);
+    }
+    if cave[(y+1)*WIDTH + x + 1] == AIR {
+        added_sand += add_sand_until_full(cave, x+1, y+1);
+    }
+    cave[y*WIDTH + x] = SAND;
+    added_sand + 1
+}
+
+fn add_single_grain(cave: &mut Cave, mut x: usize, mut y: usize) -> bool {
     loop { 
         y += 1;
         if y == HEIGHT {
@@ -41,18 +53,18 @@ fn introduce_sand(cave: &mut Cave, mut x: usize, mut y: usize) -> bool {
 
 fn add_sand_until_it_falls_off(cave: &mut [u8; WIDTH*HEIGHT]) -> usize {
     let mut p1 = 0;
-    while introduce_sand(cave, START_X, START_Y) {
+    while add_single_grain(cave, START_X, START_Y) {
         p1 += 1;
     }
     p1
 }
 
-fn add_sand_until_full(cave: &mut [u8; WIDTH*HEIGHT]) -> usize {
-    let mut p2 = 0;
-    while cave[START_Y*WIDTH + START_X] == AIR && introduce_sand(cave, START_X, START_Y) {
-        p2 += 1;
+fn add_rock_path(cave: &mut Cave, path: &[(usize,usize)]) {
+    for row in path[0].1.min(path[1].1)..=path[0].1.max(path[1].1) {
+        for column in path[0].0.min(path[1].0)..=path[0].0.max(path[1].0) {
+            cave[row*WIDTH + column] = ROCK;
+        }
     }
-    p2
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -74,35 +86,16 @@ pub fn solve(input: &str) -> Solution {
 
         bottom = bottom.max(groups.iter().map(|g| g.1).max().unwrap());
 
-        for g in groups.windows(2) {
-            for row in g[0].1.min(g[1].1)..=g[0].1.max(g[1].1) {
-                for column in g[0].0.min(g[1].0)..=g[0].0.max(g[1].0) {
-                    cave[row*WIDTH + column] = ROCK;
-                }
-            }
+        for g in groups.windows(2) { 
+            add_rock_path(&mut cave, g) 
         }
     }
 
-    // for y in 0..HEIGHT {
-    //     for x in 0..WIDTH {
-    //         print!("{}",
-    //         match cave[y*WIDTH + x] {
-    //             AIR => '.',
-    //             SAND => 'o',
-    //             ROCK => '#',
-    //             _ => '?',
-    //         });
-    //     }
-    //     println!("");
-    // }
-
     let p1 = add_sand_until_it_falls_off(&mut cave);
 
-    for x in 0..WIDTH {
-        cave[(bottom + 2)*WIDTH + x] = ROCK;
-    }
+    add_rock_path(&mut cave, &[(0,bottom + 2), (WIDTH - 1,bottom + 2)]);
 
-    let p2 = add_sand_until_full(&mut cave) + p1;
+    let p2 = p1 + add_sand_until_full(&mut cave, START_X, START_Y);
 
     Solution::new(p1,p2)
 }
