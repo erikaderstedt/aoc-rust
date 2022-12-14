@@ -1,9 +1,9 @@
 // https://adventofcode.com/2022/day/14
 use crate::common::Solution;
 
-const X_OFFSET: usize = 300;
+const X_OFFSET: usize = 468;
 const HEIGHT: usize = 170;
-const WIDTH: usize = 400;
+const WIDTH: usize = 87;
 
 const START_X: usize = 500 - X_OFFSET;
 const START_Y: usize = 0;
@@ -13,20 +13,63 @@ const AIR: u8 = 0;
 const SAND: u8 = 1;
 const ROCK: u8 = 2;
 
+#[derive(Debug)]
+struct SandAddingResult {
+    num_sand: usize,
+    highest_spill_on_left_side: Option<usize>,
+    highest_spill_on_right_side: Option<usize>,
+}
 
-fn add_sand_until_full(cave: &mut Cave, x: usize, y: usize) -> usize {
-    let mut added_sand = 0;
+impl SandAddingResult {
+    fn new() -> SandAddingResult { SandAddingResult { num_sand: 0, highest_spill_on_left_side: None, highest_spill_on_right_side: None }}
+
+    fn update(&mut self, other: SandAddingResult) {
+        self.num_sand += other.num_sand;
+        if let Some(spill) = other.highest_spill_on_left_side {
+            self.highest_spill_on_left_side = Some(spill.min(self.highest_spill_on_left_side.unwrap_or(usize::MAX)));
+        }
+        if let Some(spill) = other.highest_spill_on_right_side {
+            self.highest_spill_on_right_side = Some(spill.min(self.highest_spill_on_right_side.unwrap_or(usize::MAX)));
+        }
+    }
+
+    fn spill_on_left_side(&mut self, y: usize) {
+        self.highest_spill_on_left_side = Some(y.max(self.highest_spill_on_left_side.unwrap_or(0)));
+    }
+
+    fn spill_on_right_side(&mut self, y: usize) {
+        self.highest_spill_on_right_side = Some(y.max(self.highest_spill_on_right_side.unwrap_or(0)));
+    }
+
+    fn num_spilled_in_relation_to_bottom_rock(&self, bottom: usize) -> usize {
+        self.highest_spill_on_left_side.map(|y| (bottom - y) * ((bottom - y) + 1) / 2).unwrap_or(0) +
+        self.highest_spill_on_right_side.map(|y| (bottom - y) * ((bottom - y) + 1) / 2).unwrap_or(0)
+    }
+
+}
+
+fn add_sand_until_full(cave: &mut Cave, x: usize, y: usize) -> SandAddingResult {
+    let mut result = SandAddingResult::new();
     if cave[(y+1)*WIDTH + x] == AIR {
-        added_sand += add_sand_until_full(cave, x, y+1);
+        result.update(add_sand_until_full(cave, x, y+1));
     }
-    if cave[(y+1)*WIDTH + x - 1] == AIR {
-        added_sand += add_sand_until_full(cave, x-1, y+1);
+    if x > 0 {
+        if cave[(y+1)*WIDTH + x - 1] == AIR {
+            result.update(add_sand_until_full(cave, x-1, y+1));
+        }
+    } else { 
+        result.spill_on_left_side(y+1);
     }
-    if cave[(y+1)*WIDTH + x + 1] == AIR {
-        added_sand += add_sand_until_full(cave, x+1, y+1);
+    if x < WIDTH - 1 {
+        if cave[(y+1)*WIDTH + x + 1] == AIR {
+            result.update(add_sand_until_full(cave, x+1, y+1));
+        }    
+    } else {
+        result.spill_on_right_side(y + 1);
     }
     cave[y*WIDTH + x] = SAND;
-    added_sand + 1
+    result.num_sand += 1;
+    result
 }
 
 fn add_single_grain(cave: &mut Cave, mut x: usize, mut y: usize) -> bool {
@@ -95,7 +138,8 @@ pub fn solve(input: &str) -> Solution {
 
     add_rock_path(&mut cave, &[(0,bottom + 2), (WIDTH - 1,bottom + 2)]);
 
-    let p2 = p1 + add_sand_until_full(&mut cave, START_X, START_Y);
+    let r = add_sand_until_full(&mut cave, START_X, START_Y);
+    let p2 = p1 + r.num_sand + r.num_spilled_in_relation_to_bottom_rock(bottom + 2);
 
     Solution::new(p1,p2)
 }
