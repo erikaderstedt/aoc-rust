@@ -23,10 +23,8 @@ impl Sensor {
     fn zero_intersects_negative_slope(&self) -> Vec<isize> {
         let r = self.range as isize;
         vec![
-            self.x - (self.y - r) - 1, // top right edge
             self.x - (self.y + r) - 1, // bottom left edge
             self.x - (self.y - r) + 1, // top right edge
-            self.x - (self.y + r) + 1, // bottom left edge
         ]
     }
 
@@ -34,8 +32,6 @@ impl Sensor {
         let r = self.range as isize;
         vec![
             self.x + (self.y + r) + 1, // bottom right edge
-            self.x + (self.y + r) - 1, // bottom right edge
-            self.x + (self.y - r) - 1, // top left edge
             self.x + (self.y - r) - 1, // top left edge
         ]
     }

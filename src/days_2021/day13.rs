@@ -1,5 +1,5 @@
 // https://adventofcode.com/2021/day/12
-use crate::common::Solution;
+use crate::common::{Solution,read_5x6_characters_off_grid};
 use std::collections::HashSet;
 
 enum Fold {
@@ -69,54 +69,20 @@ pub fn solve(input: &str) -> Solution {
         for (x, y) in grid_points.into_iter() {
             grid[final_folded_index(y, final_y_width)][final_folded_index(x, final_x_width)] = true;
         }
-        if final_x_width == 40 && final_y_width == 6 {
-            (0..8).map(|i| ocr(&grid, i*5)).collect::<String>()
-        } else {
-            println!("");
-            for line in grid.into_iter() {
-                for c in line {
-                    print!("{}", if c { '█' } else { ' ' });
+        match read_5x6_characters_off_grid(&grid.iter().flatten().cloned().collect()) {
+            Ok(s) => s,
+            Err(a) => {
+                println!("Error: {}", a);
+                for line in grid.into_iter() {
+                    for c in line {
+                        print!("{}", if c { '█' } else { ' ' });
+                    }
+                    println!("");
                 }
-                println!("");
+                "?????".to_string()
             }
-            "?????".to_string()
         }
     };
 
     Solution::new(m1,m2)
-}
-
-fn ocr(grid: &Vec<Vec<bool>>, x: usize) -> char {
-    if grid[1][x+3] {
-        if grid[3][x+1] {
-            if grid[0][x+3] {
-                if grid[2][x+1] { 'X' } 
-                else if grid[4][x+3] { 'W' } else { 'Z' }
-            } 
-            else if grid[4][x+2] { 'R' } 
-            else if grid[0][x+0] { 'P' } else { 'A' }
-        }
-        else if grid[0][x+0] {
-            if grid[0][x+3] {
-				if !grid[5][x+0] {
-					if grid[4][x+1] { 'V' } else { 'U' }
-				} 
-                else if grid[1][x+2] { 'M'} 
-                else if grid[2][x+2] { 'H' } else { 'N' }
-			} 
-            else if grid[2][x+1] { 'B' } else { 'D' }
-        }
-		else if grid[4][x+1] { 'Q' }
-		else if grid[5][x+3] { 'G' }
-		else if grid[0][x+3] { 'J' }
-		else if grid[2][x+3] { 'O' }
-		else if grid[2][x+0] { 'C' } else  { 'S' }
-    }
-    else if grid[5][x+3] {
-		if grid[2][x+2] { 'E' }	
-        else if grid[0][x+3] { 'K' } else { 'L' }
-    }
-	else if !grid[0][x+1] { 'Y' }
-	else if grid[5][x+2] { 'I' }
-    else if grid[0][x+3] { 'F' } else { 'T' }
 }

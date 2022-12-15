@@ -7,9 +7,9 @@ use clap::Arg;
 mod crate_info;
 // mod days_2015;
 // mod days_2018;
-mod days_2019;
+// mod days_2019;
 // mod days_2020;
-//mod days_2021;
+// mod days_2021;
 mod days_2022;
 mod common;
 mod grid;
@@ -60,7 +60,7 @@ fn main() -> Result<(), std::io::Error> {
             // "2015" => days_2015::get_solver,
             // "2018" => days_2018::get_solver,
             // "2018" => days_2018::get_solver,
-            "2019" => days_2019::get_solver,
+            // "2019" => days_2019::get_solver,
             // "2021" => days_2021::get_solver,
             "2022" => days_2022::get_solver,
             _ => panic!("Year not implemented!"),
