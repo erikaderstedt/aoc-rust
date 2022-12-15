@@ -3,11 +3,11 @@ use crate::common::{Solution, parsed_from_each_line};
 use std::str::{FromStr, from_utf8};
 use itertools::Itertools;
 use std::ops::Range;
+use std::collections::HashSet;
 
 struct Sensor { x: isize, y: isize, beacon: (isize, isize), range: usize, }
 
 impl Sensor {
-
     fn range_at_row(&self, row: isize) -> Option<Range<isize>> {
         let reach = (self.range - row.abs_diff(self.y)) as isize;
         if reach >= 0 {
@@ -18,22 +18,6 @@ impl Sensor {
         } else {
             None
         }
-    }
-
-    fn zero_intersects_negative_slope(&self) -> Vec<isize> {
-        let r = self.range as isize;
-        vec![
-            self.x - (self.y + r) - 1, // bottom left edge
-            self.x - (self.y - r) + 1, // top right edge
-        ]
-    }
-
-    fn zero_intersects_positive_slope(&self) -> Vec<isize> {
-        let r = self.range as isize;
-        vec![
-            self.x + (self.y + r) + 1, // bottom right edge
-            self.x + (self.y - r) - 1, // top left edge
-        ]
     }
 
     fn covers(&self, x: isize, y: isize) -> bool {
@@ -88,24 +72,16 @@ pub fn solve(input: &str) -> Solution {
         .count();
 
     let p1 = ranges_at_y(&sensors, P1_ROW).into_iter().map(|range| range.len()).sum::<usize>() - num_beacons_at_p1_row;
+        
+    let bottom_left_edges: HashSet<isize> = sensors.iter().map(|sensor| sensor.x - (sensor.y + (sensor.range as isize)) - 1).collect();
+    let top_right_edges: HashSet<isize> = sensors.iter().map(|sensor| sensor.x - (sensor.y - (sensor.range as isize)) + 1).collect();
 
-    let x_axis_locations_positive: Vec<isize> = sensors
-        .iter()
-        .map(|sensor| sensor.zero_intersects_positive_slope().into_iter())
-        .flatten()
-        .sorted()
-        .dedup()
-        .collect();
+    let bottom_right_edges: HashSet<isize> = sensors.iter().map(|sensor| sensor.x + (sensor.y + (sensor.range as isize)) + 1).collect();
+    let top_left_edges: HashSet<isize> = sensors.iter().map(|sensor| sensor.x + (sensor.y - (sensor.range as isize)) - 1).collect();
 
-    let x_axis_locations_negative: Vec<isize> = sensors
-        .iter()
-        .map(|sensor| sensor.zero_intersects_negative_slope().into_iter())
-        .flatten()
-        .sorted()
-        .dedup()
-        .collect();
-    
-    let p2 = iproduct!(x_axis_locations_negative.iter(), x_axis_locations_positive.iter())
+    let p2 = iproduct!(
+            bottom_left_edges.intersection(&top_right_edges), 
+            bottom_right_edges.intersection(&top_left_edges))
         .find_map(|(x1, x2)| {
             let d = x1.abs_diff(*x2) as isize;
             if d % 2 != 0 || x2 < x1 {
