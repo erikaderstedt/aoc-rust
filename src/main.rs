@@ -3,6 +3,7 @@ use std::time::{Instant,Duration};
 
 use clap::App;
 use clap::Arg;
+use itertools::Itertools;
 
 mod crate_info;
 // mod days_2015;
@@ -43,6 +44,12 @@ fn main() -> Result<(), std::io::Error> {
         Arg::with_name("day")
             .takes_value(true)
             .help(r#"Day number (1 - 25) to run. If omitted, all days are run."#)
+    ).arg(
+        Arg::with_name("benchmark")
+            .long("benchmark")
+            .required(false)
+            .takes_value(false)
+            .help(r#"Run each day multiple times and take the median of the fastest three."#)
     );
 
     let matches = cli.get_matches();
@@ -65,12 +72,13 @@ fn main() -> Result<(), std::io::Error> {
             "2022" => days_2022::get_solver,
             _ => panic!("Year not implemented!"),
         };
+        
 
         let total_elapsed_time = match matches.value_of("day") {
             Some(day) => {
                 let solver = solver_getter(day.parse::<u8>().unwrap_or_else(|_| panic!("Invalid day number: {}", day)));
                 if let Some(s) = solver {
-                    run_day(&s, year, day, matches.value_of("input-file").map(Path::new))
+                    run_day(&s, year, day, matches.value_of("input-file").map(Path::new), matches.is_present("benchmark"))
                 } else {
                     panic!("No solver for that day!");
                 }
@@ -84,16 +92,29 @@ fn main() -> Result<(), std::io::Error> {
 }
 
 
-fn run_day(day_func: &Solver, year: &str, day: &str, input_path: Option<&Path>) -> Result<Duration, std::io::Error> {
+fn run_day(day_func: &Solver, year: &str, day: &str, input_path: Option<&Path>, benchmark: bool) -> Result<Duration, std::io::Error> {
     print!("[Day {: >2}] ", day);
 
     let input = input_path
         .map(get_file_contents)
         .unwrap_or_else(|| get_file_contents(&day_input_filename(year,day)))?;
 
-    let start = Instant::now();        
-    let solution = day_func(&input);
-    let duration = start.elapsed();
+    let (solution, duration) = if benchmark {
+        let mut durations: Vec<Duration> = vec![];
+        for _ in 0..10 {
+            let start = Instant::now();        
+            let _solution = day_func(&input);
+            let duration = start.elapsed();
+            durations.push(duration);
+        }
+        durations.sort();
+        (day_func(&input), durations[2])
+    } else {
+        let start = Instant::now();        
+        let solution = day_func(&input);
+        let duration = start.elapsed();
+        (solution, duration)
+    };
 
     print!("A: {: <15} B: {: <50} ", solution.part_1,solution.part_2);
     println!("Elapsed time: {:>7} µs", duration.as_micros());
@@ -106,7 +127,7 @@ fn run_all_days(year: &str, solver_getter: &SolverGetter) -> Result<Duration, st
         match solver_getter(day as u8) {
             Some(solver) => Some((solver, day)),
             None => None,
-        }).map(|(solver, day)| run_day(&solver, year, &day.to_string(), None))
+        }).map(|(solver, day)| run_day(&solver, year, &day.to_string(), None, false))
         .collect::<Result<Vec<Duration>,_>>()
         .map(|durations| durations.into_iter().sum())
 }
