@@ -12,6 +12,8 @@ enum Draft {
 const NUM_P1_ITERATIONS: usize = 2022;
 const WIDTH: usize = 7;
 const MAX_HEIGHT: usize = 8000;
+const NUM_ITERATIONS: usize = 1000000000000;
+
 type Rock = [u8;16];
 type Grid = [u8;WIDTH*MAX_HEIGHT];
 
@@ -24,32 +26,24 @@ const ROCK_E: Rock = [1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0];
 fn does_rock_fit(rock: &Rock, grid: &Grid, x0: usize, y0: usize) -> bool {
     // x0, y0 is the lower left corner of the rock.
     (0..16).all(|i| {
-        let x = i % 4;
-        let y = i / 4;
+        let x = i % 4; let y = i / 4;
         rock[i] == 0 || grid[(y0+y)*WIDTH + (x0 + x)] == 0
     })
 }
 
 fn paint_rock(rock: &Rock, grid: &mut Grid, x0: usize, y0: usize) {
-    // x0, y0 is the lower left corner of the rock.
     for i in 0..16 {
-        let x = i % 4;
-        let y = i / 4;
+        let x = i % 4; let y = i / 4;
         if rock[i] == 1 {
             grid[(y0+y)*WIDTH + (x0 + x)] = 1;
         }
     }
 }
 
-fn hash_top_18_rows(grid_part: &[u8]) -> u128 {
-    (0..(18*WIDTH)).fold(0u128, |v,i| if grid_part[i] == 1 { v + (1u128 << i) } else { v })
-}
-
 #[derive(Hash,PartialEq, Eq)]
 struct Configuration {
     rock: usize,
     draft: usize,
-    grid: u128
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -68,7 +62,7 @@ pub fn solve(input: &str) -> Solution {
     let mut seen_configurations: HashMap<Configuration,(usize,usize)> = HashMap::new();
     let mut p1: Option<usize> = None;
     let mut p2: Option<usize> = None;
-    for (_iteration, (rock_index,((width,height),rock))) in (0..1000000000000).zip(rocks.iter().enumerate().cycle()) {
+    for (_iteration, (rock_index,((width,height),rock))) in (0..NUM_ITERATIONS).zip(rocks.iter().enumerate().cycle()) {
         let mut y = floor + 3;
         let mut x: i32 = 2;
         let draft_index = loop {
@@ -88,23 +82,19 @@ pub fn solve(input: &str) -> Solution {
 
         floor = floor.max(y + height);
 
-        if floor > 18 {
-            let start = floor - 17;
-            let configuration = Configuration {
-                rock: rock_index,
-                draft: draft_index,
-                grid: hash_top_18_rows(&grid[start*WIDTH .. (start + 18)*WIDTH])
-            };
-            if let Some((iteration, floor_height)) = seen_configurations.get(&configuration) {
-                let iteration_period = _iteration - iteration;
-                if 1000000000000 % iteration_period == _iteration % iteration_period {
-                    let floor_period = floor - floor_height;
-                    let num_remaining = (1000000000000 - _iteration) / iteration_period;
-                    p2 = Some(floor + num_remaining * floor_period - 1);
-                } 
-            } else {
-                seen_configurations.insert(configuration, (_iteration, floor));
-            }
+        let configuration = Configuration {
+            rock: rock_index,
+            draft: draft_index,
+        };
+        if let Some((iteration, floor_height)) = seen_configurations.get(&configuration) {
+            let iteration_period = _iteration - iteration;
+            if NUM_ITERATIONS % iteration_period == _iteration % iteration_period {
+                let floor_period = floor - floor_height;
+                let num_remaining = (NUM_ITERATIONS - _iteration) / iteration_period;
+                p2 = Some(floor + num_remaining * floor_period - 1);
+            } 
+        } else {
+            seen_configurations.insert(configuration, (_iteration, floor));
         }
 
         if _iteration == NUM_P1_ITERATIONS - 1 {
