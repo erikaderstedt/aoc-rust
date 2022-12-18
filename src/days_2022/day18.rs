@@ -1,6 +1,6 @@
 // https://adventofcode.com/2022/day/18
 
-use crate::common::Solution;
+use crate::common::{Solution, parsed_from_each_line};
 use itertools::Itertools;
 use std::str::FromStr;
 
@@ -32,7 +32,7 @@ impl Droplet {
 }
 
 pub fn solve(input: &str) -> Solution {
-    let droplets: Vec<Droplet> = input.lines().map(|line| line.parse::<Droplet>().expect("Bad droplet")).sorted_by_key(|d| d.x).collect();
+    let droplets: Vec<Droplet> = parsed_from_each_line(input);
     
     let mut space = [[[AIR; SIDE];SIDE];SIDE];
 
@@ -43,7 +43,7 @@ pub fn solve(input: &str) -> Solution {
     let p1 = droplets.iter().map(|d| d.num_free_edges(&space)).sum::<usize>();
 
     // Seed the sides with outside air.
-    let mut exterior_spaces = 0;
+    let mut exterior_spaces = 0usize;
     for i1 in 0..SIDE {        
         for i2 in 0..SIDE { 
             space[0][i1][i2] = OUTSIDE_AIR;
@@ -52,13 +52,14 @@ pub fn solve(input: &str) -> Solution {
             space[SIDE-1][i1][i2] = OUTSIDE_AIR;
             space[i1][SIDE-1][i2] = OUTSIDE_AIR;
             space[i1][i2][SIDE-1] = OUTSIDE_AIR;
-            exterior_spaces += OUTSIDE_AIR;
+            exterior_spaces += 6;
         }
     }
 
     // Flood fill air with outside air.
-    loop {
-        let exterior_spaces_at_iteration_start = exterior_spaces;
+    let mut exterior_spaces_at_iteration_start = 0;
+    while exterior_spaces_at_iteration_start != exterior_spaces {
+        exterior_spaces_at_iteration_start = exterior_spaces;
         for z in 1..(SIDE-1) {
             for y in 1..(SIDE-1) {
                 for x in 1..(SIDE-1) {
@@ -73,10 +74,6 @@ pub fn solve(input: &str) -> Solution {
                     }
                 }
             }
-        }
-
-        if exterior_spaces == exterior_spaces_at_iteration_start {
-            break;
         }
     }
 
