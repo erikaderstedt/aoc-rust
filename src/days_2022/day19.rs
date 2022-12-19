@@ -1,42 +1,43 @@
 // https://adventofcode.com/2022/day/19
 
-use crate::common::{Solution, parsed_from_each_line};
+use crate::common::Solution;
 use std::str::FromStr;
 
 const NUM_MATERIALS: usize = 4;
 const NUM_INGREDIENTS: usize = 4;
 const FAR_FUTURE: u16 = 100;
 
-type OreAmount = u16;
-type RobotAmount = OreAmount;
-type Recipe = [OreAmount; NUM_INGREDIENTS];
+type Amount = u16;
+type RobotAmount = Amount;
+type Recipe = [Amount; NUM_INGREDIENTS];
 
 #[derive(Debug)]
 struct Blueprint {
-    recipes: [Recipe; NUM_MATERIALS],
+    costs: [Recipe; NUM_MATERIALS],
+    max_robots: [RobotAmount; NUM_MATERIALS],
+    best_geode_result: Amount
 }
 
 #[derive(Debug)]
 struct State {
-    materials: [OreAmount; NUM_MATERIALS],
+    materials: [Amount; NUM_MATERIALS],
     robots: [RobotAmount; NUM_MATERIALS],
     time_left: u16,
 }
 
 impl Blueprint {
 
-    // exhaustive dfs search
-    fn simulate(&self, state: State, max_robots: &[RobotAmount; NUM_MATERIALS], max_geodes: &mut OreAmount) {
+    fn simulate(&mut self, state: State) {
         let mut robot_was_built = false;
 
         // At each iteration, we branch into building each available robot that has not yet reached the maximum
         // number required. The path that we trace out is the order in which we build the robots.
         for robot_type in 0..NUM_MATERIALS {
             // Do we build a robot of this type next?
-            if state.robots[robot_type] == max_robots[robot_type] {
+            if state.robots[robot_type] == self.max_robots[robot_type] {
                 continue;
             }
-            let recipe = &self.recipes[robot_type];
+            let recipe = &self.costs[robot_type];
             let completion_time = (0..NUM_INGREDIENTS)
                 .filter_map(|material_type| match recipe[material_type] {
                     0 => None, // This ore type is not required to build this robot type.
@@ -62,8 +63,7 @@ impl Blueprint {
             // If we were to build only geode robots every turn after building the robot, could we beat the current max?
             if ((time_remaining_when_finished - 1) * time_remaining_when_finished) / 2
                 + new_materials[3] + time_remaining_when_finished * new_robots[3]
-                < *max_geodes
-            {
+                < self.best_geode_result {
                 continue;
             }
             robot_was_built = true;
@@ -72,47 +72,40 @@ impl Blueprint {
                     materials: new_materials,
                     robots: new_robots,
                     time_left: time_remaining_when_finished,
-                },
-                max_robots,
-                max_geodes,
+                }
             );
         }
         if !robot_was_built {
             // We couldn't make new robots. Calculate the number of geodes we end up with if we let the clock run out
-            *max_geodes = (*max_geodes).max(state.materials[3] + state.robots[3] * state.time_left as u16);
+            self.best_geode_result = self.best_geode_result.max(state.materials[3] + state.robots[3] * state.time_left as u16);
         }
     }
 
-    fn run_simulation(&self, max_time: u16) -> OreAmount {
-        let mut max_robots = [u16::MAX; NUM_MATERIALS];
-        for i in 0..3 {
-            max_robots[i] = self.recipes.iter().map(|r| r[i]).max().unwrap();
-        }
-        let mut max_geodes = 0;
+    fn run_simulation(&mut self, max_time: u16) -> Amount {
         self.simulate(
             State {
                 materials: [0; NUM_MATERIALS],
                 robots: [1, 0, 0, 0],
                 time_left: max_time
             },
-            &max_robots,
-            &mut max_geodes,
         );
-        max_geodes
+        self.best_geode_result
     }
 }
 
 pub fn solve(input: &str) -> Solution {
-    let blueprints: Vec<Blueprint> = parsed_from_each_line(input);
-
-    let p1: OreAmount = blueprints.iter()
+    let p1: Amount = input
+        .lines()
+        .map(|line| line.parse::<Blueprint>().unwrap())
         .enumerate()
-        .map(|(index, blueprint)| blueprint.run_simulation(24) * (index as OreAmount + 1) )
+        .map(|(index, mut blueprint)| blueprint.run_simulation(24) * (index as Amount + 1) )
         .sum();
 
-    let p2: OreAmount = blueprints.iter()
+    let p2: Amount = input
+        .lines()
         .take(3)
-        .map(|blueprint| blueprint.run_simulation(32) )
+        .map(|line| line.parse::<Blueprint>().unwrap())
+        .map(|mut blueprint| blueprint.run_simulation(32) )
         .product();
 
     Solution::new(p1,p2)
@@ -124,10 +117,16 @@ impl FromStr for Blueprint {
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         let s: Vec<&str> = line.split(" ").collect();
 
-        Ok(Blueprint { recipes: [
-                [s[6].parse().unwrap(),0,0,0],
-                [s[12].parse().unwrap(),0,0,0],
-                [s[18].parse().unwrap(), s[21].parse().unwrap(),0,0],
-                [s[27].parse().unwrap(), 0, s[30].parse().unwrap(),0]] })
+        let costs = [[s[6].parse().unwrap(),0,0,0],
+                    [s[12].parse().unwrap(),0,0,0],
+                    [s[18].parse().unwrap(), s[21].parse().unwrap(),0,0],
+                    [s[27].parse().unwrap(), 0, s[30].parse().unwrap(),0]];
+
+        let mut max_robots = [u16::MAX; NUM_MATERIALS];
+        for i in 0..3 {
+            max_robots[i] = costs.iter().map(|r| r[i]).max().unwrap();
+        }
+
+        Ok(Blueprint { costs, max_robots, best_geode_result: 0 })
     }
 }
