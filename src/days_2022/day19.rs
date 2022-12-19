@@ -27,13 +27,16 @@ impl Blueprint {
 
     // exhaustive dfs search
     fn simulate(&self, state: State, max_robots: &[RobotAmount; NUM_MATERIALS], max_geodes: &mut OreAmount) {
-        let mut has_recursed = false;
+        let mut robot_was_built = false;
+
+        // At each iteration, we branch into building each available robot that has not yet reached the maximum
+        // number required. The path that we trace out is the order in which we build the robots.
         for robot_type in 0..NUM_MATERIALS {
+            // Do we build a robot of this type next?
             if state.robots[robot_type] == max_robots[robot_type] {
                 continue;
             }
             let recipe = &self.recipes[robot_type];
-            // Find the limiting ore for the recipe.
             let completion_time = (0..NUM_INGREDIENTS)
                 .filter_map(|material_type| match recipe[material_type] {
                     0 => None, // This ore type is not required to build this robot type.
@@ -55,15 +58,15 @@ impl Blueprint {
                 new_materials[o] = state.materials[o] + state.robots[o] * completion_time - recipe[o];
                 new_robots[o] = state.robots[o] + u16::from(o == robot_type);
             }
-            // If we were to build only geode robots every turn, could we beat the current max?
+
+            // If we were to build only geode robots every turn after building the robot, could we beat the current max?
             if ((time_remaining_when_finished - 1) * time_remaining_when_finished) / 2
-                + new_materials[3]
-                + time_remaining_when_finished * new_robots[3]
+                + new_materials[3] + time_remaining_when_finished * new_robots[3]
                 < *max_geodes
             {
                 continue;
             }
-            has_recursed = true;
+            robot_was_built = true;
             self.simulate(
                 State {
                     materials: new_materials,
@@ -74,8 +77,8 @@ impl Blueprint {
                 max_geodes,
             );
         }
-        if !has_recursed {
-            // We couldn't make new robots, so this is the best this branch can do.
+        if !robot_was_built {
+            // We couldn't make new robots. Calculate the number of geodes we end up with if we let the clock run out
             *max_geodes = (*max_geodes).max(state.materials[3] + state.robots[3] * state.time_left as u16);
         }
     }
