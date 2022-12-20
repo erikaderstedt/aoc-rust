@@ -5,10 +5,10 @@ use std::str::FromStr;
 
 const NUM_MATERIALS: usize = 4;
 const NUM_INGREDIENTS: usize = 4;
-const FAR_FUTURE: u16 = 100;
+const FAR_FUTURE: u32 = 100;
 const GEODE: usize = 3;
 
-type Amount = u16;
+type Amount = u32;
 type RobotAmount = Amount;
 type Recipe = [Amount; NUM_INGREDIENTS];
 
@@ -21,7 +21,7 @@ struct Blueprint {
 
 impl Blueprint {
 
-    fn simulate(&mut self, materials: [Amount; NUM_MATERIALS], robots: [RobotAmount; NUM_MATERIALS], time_left: u16) {
+    fn simulate(&mut self, materials: [Amount; NUM_MATERIALS], robots: [RobotAmount; NUM_MATERIALS], time_left: u32) {
         let mut robot_was_built = false;
 
         // At each iteration, we branch into building each available robot that has not yet reached the maximum
@@ -36,15 +36,15 @@ impl Blueprint {
             let completion_time = (0..NUM_INGREDIENTS)
                 .map(|material_type| 
                     if recipe[material_type] <= materials[material_type] {
-                        0 // We already have enough for this robot.
+                        1 // We already have enough for this robot.
                     } else if robots[material_type] == 0 {
                         FAR_FUTURE // There is no robot for this type of ore yet, so robot type 'robot_type' is not available
                     } else {
-                        (recipe[material_type] - materials[material_type] + robots[material_type] - 1) / robots[material_type]
+                        (recipe[material_type] - materials[material_type] + robots[material_type] - 1) / robots[material_type] + 1
                     }
                 )
                 .max()
-                .unwrap() + 1;
+                .unwrap();
 
             if completion_time >= time_left {
                 continue;
@@ -55,7 +55,7 @@ impl Blueprint {
             let mut new_robots = [0; NUM_MATERIALS];
             for o in 0..NUM_MATERIALS {
                 new_materials[o] = materials[o] + robots[o] * completion_time - recipe[o];
-                new_robots[o] = robots[o] + u16::from(o == robot_type);
+                new_robots[o] = robots[o] + u32::from(o == robot_type);
             }
 
             // If we were to build only geode robots every turn after building the robot, could we beat the current max?
@@ -71,11 +71,11 @@ impl Blueprint {
         }
         if !robot_was_built {
             // We couldn't make new robots. Calculate the number of geodes we end up with if we let the clock run out
-            self.best_geode_result = self.best_geode_result.max(materials[GEODE] + robots[GEODE] * time_left as u16);
+            self.best_geode_result = self.best_geode_result.max(materials[GEODE] + robots[GEODE] * time_left as u32);
         }
     }
 
-    fn run_simulation(&mut self, max_time: u16) -> Amount {
+    fn run_simulation(&mut self, max_time: u32) -> Amount {
         self.simulate([0; NUM_MATERIALS], [1, 0, 0, 0], max_time);
         self.best_geode_result
     }
@@ -110,7 +110,7 @@ impl FromStr for Blueprint {
                     [s[18].parse().unwrap(), s[21].parse().unwrap(),0,0],
                     [s[27].parse().unwrap(), 0, s[30].parse().unwrap(),0]];
 
-        let mut max_robots = [u16::MAX; NUM_MATERIALS];
+        let mut max_robots = [u32::MAX; NUM_MATERIALS];
         for i in 0..3 {
             max_robots[i] = costs.iter().map(|r| r[i]).max().unwrap();
         }
