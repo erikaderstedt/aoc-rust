@@ -2,38 +2,40 @@
 
 use itertools::Itertools;
 use crate::common::Solution;
-use std::collections::VecDeque;
 
-type List = VecDeque<(usize,i64)>;
-
-fn mix(ordering: List, num_iterations: usize) -> i64 {
-    let mut mixed = ordering.clone();
-    let len = mixed.len() - 1;
-
+fn mix(unmixed: Vec<i64>, num_iterations: usize) -> i64 {
+    let mut labels: Vec<u16> = (0..unmixed.len()).map(|v| v as u16).collect(); 
+    let mut values = unmixed.clone();
+    let len = values.len() - 1;
+    
     for _i in 0..num_iterations {
-        for (label, num) in ordering.iter() {
-            let index: usize = mixed.iter().find_position(|j| j.0 == *label).unwrap().0;
-            let value = mixed.remove(index).unwrap();
-            let new_index = (((index as i64) + *num + (2811589153)*(len as i64)) as usize) % len;
-            mixed.insert(new_index, value);
+        for label in 0u16..(unmixed.len() as u16) {
+            let mut index = 0;
+            while labels[index] != label {
+                index += 1;
+            }
+            let l = labels.remove(index);
+            let v = values.remove(index);
+            let new_index = (((index as i64) + v + (2 * 811589153)*(len as i64)) as usize) % len;
+            labels.insert(new_index, l);
+            values.insert(new_index, v);
         }    
     }
 
-    let i0 = mixed.iter().find_position(|&j| j.1 == 0i64).unwrap().0;
+    let i0 = values.iter().find_position(|&j| *j == 0i64).unwrap().0;
     [1000,2000,3000].iter()
-        .map(|j| mixed[(i0 + *j) % mixed.len()].1)
+        .map(|j| values[(i0 + *j) % values.len()])
         .sum()
 }
 
 pub fn solve(input: &str) -> Solution {
-    let list: List = input
+    let list: Vec<i64> = input
         .lines()
         .map(|line| line.parse::<i64>().unwrap())
-        .enumerate()
         .collect();
-    let decrypted: List = list
+    let decrypted: Vec<i64> = list
         .iter()
-        .map(|(i, n)| (i.clone(), n * 811589153))
+        .map(|n| n * 811589153)
         .collect();
 
     let p1 = mix(list, 1);
