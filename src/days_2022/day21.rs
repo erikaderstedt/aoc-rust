@@ -84,7 +84,7 @@ pub fn solve(input: &str) -> Solution {
     let monkeys: Monkeys = input.into();
     let p1 = monkeys.evaluate("root");
     let p2 = match &monkeys.0["root"] {
-        Value::Literal(_) => { panic!("Root element cannot be a literal") },
+        Value::Literal(_) => { panic!("Root element cannot be a literal for pt2 to work.") },
         Value::Operation(_, a, b) => {
             let second_operand_uses_humn = monkeys.uses_humn(b);
             let (mut inverse_operations, mut constant) = if second_operand_uses_humn { 
@@ -102,19 +102,25 @@ pub fn solve(input: &str) -> Solution {
     Solution::new(p1,p2)
 }
 
+impl<'a> From<&'a str> for Operation {
+    fn from(operator: &'a str) -> Self {
+        match operator {
+            "+" => Self::Add,
+            "*" => Self::Multiply,
+            "-" => Self::Subtract,
+            "/" => Self::Divide,
+            _ => { panic!("Unknown operator.") }
+        }
+    }
+}
+
 impl<'a> From<&'a str> for Value<'a> {
     fn from(line: &'a str) -> Self {
         if line.as_bytes()[0].is_ascii_digit() {
             Value::Literal(line.parse().unwrap())
         } else {
             let (monkey1, operator, monkey2) = line.split(" ").collect_tuple().unwrap();
-            Value::Operation(match operator {
-                "+" => Operation::Add,
-                "*" => Operation::Multiply,
-                "-" => Operation::Subtract,
-                "/" => Operation::Divide,
-                _ => { panic!("Unknown operator.") }
-            }, monkey1, monkey2)
+            Value::Operation(operator.into(), monkey1, monkey2)
         }
     }
 }

@@ -47,7 +47,7 @@ impl<T: GridElement> Grid<T> {
 
     pub fn load(input: &str) -> Grid<T> {
         let cols = input.lines().next().unwrap().len();
-        let locations: Vec<T> = input.chars().filter_map(|c| if c.is_whitespace() { None } else { T::from_char(&c) }).collect();
+        let locations: Vec<T> = input.chars().filter_map(|c| T::from_char(&c)).collect();
         let rows = locations.len()/cols;
         assert!(rows * cols == locations.len(), "Grid is not rectangular, perhaps some items won't parse");
         Grid { rows, cols, locations }

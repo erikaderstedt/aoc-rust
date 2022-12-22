@@ -25,7 +25,7 @@ use crate::crate_info::crate_version;
 
 #[macro_use]
 extern crate itertools;
-// #[macro_use]
+#[macro_use]
 extern crate scan_fmt;
 
 type SolverGetter = dyn Fn(u8) -> Option<Solver>;
@@ -68,6 +68,7 @@ fn main() -> Result<(), std::io::Error> {
             // "2018" => days_2018::get_solver,
             // "2018" => days_2018::get_solver,
             // "2019" => days_2019::get_solver,
+            // "2020" => days_2020::get_solver,
             // "2021" => days_2021::get_solver,
             "2022" => days_2022::get_solver,
             _ => panic!("Year not implemented!"),
