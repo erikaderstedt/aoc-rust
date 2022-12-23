@@ -10,7 +10,7 @@ const LOWEST: u8 = 'a' as u8;
 const HIGHEST: u8 = 'z' as u8;
 
 impl GridElement for u8 {
-    fn from_char(c: &char) -> Option<Self> { Some(*c as u8) }
+    fn from_char(c: &char) -> Option<Self> { if c.is_whitespace() { None } else { Some(*c as u8) }}
     fn to_char(&self) -> char { *self as char }
 }
 
