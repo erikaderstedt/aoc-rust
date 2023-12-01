@@ -22,9 +22,9 @@ fn snafu(input: &str) -> isize {
 fn to_snafu(i: isize) -> String {
     let mut v = vec![];
 
-    let mut i = i.clone();
-    while i > 0 {
-        v.push(match (i + 2) % 5 {
+    let mut i = i + 2;
+    while i > 2 {
+        v.push(match i % 5 {
             0 => '=',
             1 => '-',
             2 => '0',
@@ -32,7 +32,7 @@ fn to_snafu(i: isize) -> String {
             4 => '2',
             _ => panic!("")
         });
-        i = (i - ((i + 2) % 5 - 2)) / 5;
+        i = (i - i % 5) / 5 + 2;
     }
 
     v.into_iter().rev().collect()

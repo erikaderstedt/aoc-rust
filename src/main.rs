@@ -11,9 +11,11 @@ mod crate_info;
 // mod days_2019;
 // mod days_2020;
 // mod days_2021;
-mod days_2022;
+// mod days_2022;
+mod days_2023;
 mod common;
 mod grid;
+mod direction;
 
 use crate::common::day_input_filename;
 use crate::common::get_file_contents;
@@ -70,7 +72,8 @@ fn main() -> Result<(), std::io::Error> {
             // "2019" => days_2019::get_solver,
             // "2020" => days_2020::get_solver,
             // "2021" => days_2021::get_solver,
-            "2022" => days_2022::get_solver,
+            // "2022" => days_2022::get_solver,
+            "2023" => days_2023::get_solver,
             _ => panic!("Year not implemented!"),
         };
         
