@@ -3,7 +3,6 @@ use std::time::{Instant,Duration};
 
 use clap::App;
 use clap::Arg;
-use itertools::Itertools;
 
 mod crate_info;
 // mod days_2015;
@@ -15,7 +14,6 @@ mod crate_info;
 mod days_2023;
 mod common;
 mod grid;
-mod direction;
 
 use crate::common::day_input_filename;
 use crate::common::get_file_contents;

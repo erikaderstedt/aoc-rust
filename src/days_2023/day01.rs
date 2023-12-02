@@ -1,16 +1,20 @@
-// https://adventofcode.com/2022/day/1
+// https://adventofcode.com/2023/day/1
 
 use itertools::Itertools;
-
 use crate::common::Solution;
 
 pub fn solve(input: &str) -> Solution {    
     let p1: u32 = input
         .split('\n')
         .map(|line| -> u32 {
-            let digits: Vec<u32> = line.chars().filter(|c| c.is_digit(10)).map(|c| c.into()).collect();
+            let digits: Vec<u32> = line
+                .chars()
+                .filter(|c| c.is_digit(10))
+                .map(|c| c as u32 - '0' as u32)
+                .collect();
+
             match (digits.first(), digits.last()) {
-                (Some(a),Some(b)) => (a - ('0' as u32))*10 + (b - ('0' as u32)),
+                (Some(a),Some(b)) => a*10 + b,
                 _ => 0,
             }
         })
@@ -23,7 +27,8 @@ pub fn solve(input: &str) -> Solution {
             let digits: Vec<(usize,usize)> = line
                 .chars()
                 .enumerate()
-                .filter_map(|(i,c)| if c.is_digit(10) { Some((i, (c as usize) - ('0' as usize)))} else { None })
+                .filter(|c| c.1.is_digit(10))
+                .map(|c| (c.0, c.1 as usize - '0' as usize))
                 .chain(
                     textual_digits
                         .iter()
