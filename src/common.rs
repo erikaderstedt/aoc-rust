@@ -52,6 +52,7 @@ where T::Err: std::fmt::Display
     ).collect()
 }
 
+#[allow(dead_code)]
 pub fn read_5x6_characters_off_grid(grid: &Vec<bool>) -> Result<String, &str> {
     if grid.len() % 30 != 0 {
         return Err("Grid size must be a multiple of 30.")

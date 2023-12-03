@@ -25,8 +25,9 @@ use crate::crate_info::crate_version;
 
 #[macro_use]
 extern crate itertools;
-#[macro_use]
-extern crate scan_fmt;
+
+// #[macro_use]
+// extern crate scan_fmt;
 
 type SolverGetter = dyn Fn(u8) -> Option<Solver>;
 

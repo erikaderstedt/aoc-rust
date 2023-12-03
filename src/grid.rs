@@ -26,19 +26,22 @@ impl fmt::Debug for Position {
         write!(f, "({},{})", self.column, self.row)
     }
 }
-
+#[allow(dead_code)]
 impl Position {
     pub fn above(&self) -> Position { Position { row: self.row - 1, column: self.column }}
-    // pub fn above_left(&self) -> Position { Position { row: self.row - 1, column: self.column - 1 }}
-    // pub fn above_right(&self) -> Position { Position { row: self.row - 1, column: self.column + 1}}
+    pub fn above_left(&self) -> Position { Position { row: self.row - 1, column: self.column - 1 }}
+    pub fn above_right(&self) -> Position { Position { row: self.row - 1, column: self.column + 1}}
     pub fn below(&self) -> Position { Position { row: self.row + 1, column: self.column }}
-    // pub fn below_left(&self) -> Position { Position { row: self.row + 1, column: self.column - 1 }}
-    // pub fn below_right(&self) -> Position { Position { row: self.row + 1, column: self.column + 1}}
-
+    pub fn below_left(&self) -> Position { Position { row: self.row + 1, column: self.column - 1 }}
+    pub fn below_right(&self) -> Position { Position { row: self.row + 1, column: self.column + 1}}
     pub fn left(&self) -> Position { Position { row: self.row, column: self.column - 1 }}
     pub fn right(&self) -> Position { Position { row: self.row, column: self.column + 1 }}
 
     // pub fn origin() -> Position { Position { row: 0usize, column: 0 } }
+
+    pub fn neighbors(&self) -> NeighborIterator {
+        NeighborIterator { center_row: self.row, center_col: self.column, index: 0 }
+    }
 }
 
 impl<T: GridElement> Grid<T> {
@@ -84,9 +87,9 @@ impl<T: GridElement> Grid<T> {
         self.locations.iter().position(|i| i == element).map(|l| Position { row: l / self.cols, column: l % self.cols })
     }
 
-    // pub fn positions(&self) -> GridIterator {
-    //     GridIterator { row: 0, col: 0, min_col:0, max_col: self.cols, max_row: self.rows }
-    // }
+    pub fn positions(&self) -> GridIterator {
+        GridIterator { row: 0, col: 0, min_col:0, max_col: self.cols, max_row: self.rows }
+    }
 
     #[allow(dead_code)]
     pub fn display(&self) {
@@ -153,29 +156,57 @@ impl<T: GridElement> IndexMut<&Position> for Grid<T> {
     }
 }
 
-// pub struct GridIterator {
-//     row: usize,
-//     col: usize,
-//     min_col: usize,
-//     max_col: usize,
-//     max_row: usize,
-// }
+pub struct GridIterator {
+    row: usize,
+    col: usize,
+    min_col: usize,
+    max_col: usize,
+    max_row: usize,
+}
 
-// impl Iterator for GridIterator {
-//     type Item = Position;
+impl Iterator for GridIterator {
+    type Item = Position;
 
-//     fn next(&mut self) -> Option<Position> {
-//         if self.row >= self.max_row {
-//             None
-//         } else {
-//             let v = Some(Position { row: self.row, column: self.col });
-//             self.col += 1;
-//             if self.col == self.max_col {
-//                 self.row += 1;
-//                 self.col = self.min_col;
-//             }
-//             v
-//         }
-//     }
-// }
+    fn next(&mut self) -> Option<Position> {
+        if self.row >= self.max_row {
+            None
+        } else {
+            let v = Some(Position { row: self.row, column: self.col });
+            self.col += 1;
+            if self.col == self.max_col {
+                self.row += 1;
+                self.col = self.min_col;
+            }
+            v
+        }
+    }
+}
+
+
+
+pub struct NeighborIterator {
+    center_row: usize,
+    center_col: usize,
+    index: usize,
+}
+
+impl Iterator for NeighborIterator {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Position> {
+        let n = match self.index {
+            0 => Some( Position { row: self.center_row - 1, column: self.center_col - 1 }),
+            1 => Some( Position { row: self.center_row - 1, column: self.center_col }),
+            2 => Some( Position { row: self.center_row - 1, column: self.center_col + 1 }),
+            3 => Some( Position { row: self.center_row, column: self.center_col - 1}),
+            4 => Some( Position { row: self.center_row, column: self.center_col + 1}),
+            5 => Some( Position { row: self.center_row + 1, column: self.center_col - 1}),
+            6 => Some( Position { row: self.center_row + 1, column: self.center_col }),
+            7 => Some( Position { row: self.center_row + 1, column: self.center_col + 1}),
+            _ => None,
+        };
+        self.index = self.index + 1;
+        n
+    }
+}
 
