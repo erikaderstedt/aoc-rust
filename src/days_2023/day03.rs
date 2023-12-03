@@ -1,33 +1,24 @@
 // https://adventofcode.com/2023/day/3
 
-use std::collections::HashSet;
+use itertools::Itertools;
 
 use crate::{common::Solution, grid::{Grid, GridElement, Position}};
 
-#[derive(PartialEq, Eq, Clone,Debug)]
+#[derive(PartialEq, Eq, Clone)]
 enum EngineSchematicPoint {
     Digit(u8),
-    Symbol(char),
-    Number(usize),
+    Gear,
+    OtherSymbol,
     Blank,
 }
 
 impl EngineSchematicPoint {
-    fn is_symbol(&self) -> bool {
+    fn any_symbol(&self) -> bool {
         match self {
-            Self::Symbol(_) => true,
+            Self::Gear | Self::OtherSymbol => true,
             _ => false,
         }
     }
-
-    fn encode_part_number(position: &Position, part_number_value: usize) -> Self {
-        Self::Number(position.row + position.column * 1000 + part_number_value * 1000000)
-    }
-
-    fn decode_part_number(encoded_number: usize) -> usize {
-        encoded_number / 1000000
-    }
-
 }
 
 impl GridElement for EngineSchematicPoint {
@@ -35,84 +26,88 @@ impl GridElement for EngineSchematicPoint {
         match c {
             '\n' => None,
             '.' => Some(Self::Blank),
+            '*' => Some(Self::Gear),
             '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => Some(Self::Digit(*c as u8 - '0' as u8)),
-            _ => Some(Self::Symbol(*c)),
+            _ => Some(Self::OtherSymbol),
         }
     }
     fn to_char(&self) -> char { 
         match self {
             Self::Blank => '.',
-            Self::Symbol(a) => *a,
-            Self::Number(x) => 'X',
+            Self::OtherSymbol => '?',
+            Self::Gear => '*',
             Self::Digit(d) => (d + '0' as u8) as char,
         }
     }
+}
+
+struct Number {
+    value: usize,
+    left: usize,
+    right: usize,
+    top: usize,
+    bottom: usize,
 }
 
 pub fn solve(input: &str) -> Solution {    
     let mut engine: Grid<EngineSchematicPoint> = Grid::load(input);
 
     engine.enclose(EngineSchematicPoint::Blank);
-    
-    let p1: usize = engine.positions().filter_map(|pos|
-        match engine[&pos] {
-            EngineSchematicPoint::Digit(d) if pos.neighbors().any(|p| engine[&p].is_symbol()) => {
-            // Scan to the left and right to find other digits.
-            let mut value = d as usize;
-            let mut scan_pos = pos.left();
-            let mut multiplier = 10;
-            let mut positions = vec![pos.clone()];
-            loop {
-                match engine[&scan_pos] {
-                    EngineSchematicPoint::Digit(d) => {
-                        value = multiplier * (d as usize) + value;
-                        multiplier = 10 * multiplier;
-                        engine[&scan_pos] = EngineSchematicPoint::Blank;
-                        positions.push(scan_pos.clone());
-                        scan_pos = scan_pos.left();
+
+    let contiguous_regions = engine
+        .positions()
+        .group_by(|e| match engine[e] { EngineSchematicPoint::Digit(_) => true, _ => false });
+
+    let mut numbers: Vec<Number> = Vec::new();
+    for (is_digits, group) in &contiguous_regions {
+        if is_digits {
+            let mut value = 0;
+            let mut multiplier = 1;
+            let positions: Vec<Position> = group.collect();
+            for position in positions.iter().rev() {
+                match engine[position] {
+                    EngineSchematicPoint::Digit(n) => {
+                        value += multiplier * (n as usize);
+                        multiplier *= 10;
                     },
-                    _ => { break },
+                    _ => {},
                 }
-            };
-            scan_pos = pos.right();
-            loop {
-                match engine[&scan_pos] {
-                    EngineSchematicPoint::Digit(d) => {
-                        value = 10 * value + (d as usize);
-                        engine[&scan_pos] = EngineSchematicPoint::Blank;
-                        positions.push(scan_pos.clone());
-                        scan_pos = scan_pos.right();
-                    },
-                    _ => { break },
-                }
-            };
-            for p in positions.into_iter() {
-                engine[&p] = EngineSchematicPoint::encode_part_number(&pos, value);
             }
-            Some(value)
-            },
-            _ => None,
+            let left = positions[0].column - 1;
+            let right = left + positions.len() + 1;
+            let top = positions[0].row - 1;
+            let bottom = top + 2;
+            numbers.push(Number { value, left, right, top, bottom })
         }
-    ).sum();
+    }
 
-    let p2: usize = engine.positions().filter_map(|pos|
-        match engine[&pos] {
-            EngineSchematicPoint::Symbol('*') => {
+    let p1: usize = numbers.iter()
+        .filter(|n| (n.left..=n.right).any(|x| 
+                        engine[&Position { row: n.top, column: x }].any_symbol() ||
+                        engine[&Position { row: n.bottom, column: x }].any_symbol()) ||
+            engine[&Position { row: n.top + 1, column: n.left }].any_symbol() ||
+            engine[&Position { row: n.top + 1, column: n.right }].any_symbol())
+        .map(|n| n.value)
+        .sum();
 
-                let numbers: HashSet<usize> = pos.neighbors().filter_map(|n| match engine[&n] {
-                    EngineSchematicPoint::Number(x) => Some(x),
-                    _ => None,
-                }).collect();
-                
-                if numbers.len() == 2 {                    
-                    Some(numbers.iter().map(|n| EngineSchematicPoint::decode_part_number(*n)).product::<usize>())
-                } else {
-                    None
-                }
-            },
-            _ => None,
-        }
-    ).sum();
+    let p2: usize = engine.positions()
+        .filter_map(|p| {
+            match engine[&p] {
+                EngineSchematicPoint::Gear => { 
+                    let values: Vec<usize> = numbers.iter()
+                    .filter(|n| n.left <= p.column && n.right >= p.column && n.top <= p.row && n.bottom >= p.row)
+                    .map(|n| n.value).collect();
+    
+                    if values.len() == 2 {
+                        Some(values[0] * values[1])
+                    } else {
+                        None
+                    }
+                },
+                _ => None,
+            }
+        })
+        .sum();
 
     Solution::new(p1,p2)
 }
