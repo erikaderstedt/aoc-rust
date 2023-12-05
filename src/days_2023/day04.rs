@@ -16,7 +16,6 @@ impl Card {
 
     fn value(&self) -> usize {
         match self.number_of_matches() {
-            1 => 1,
             0 => 0,
             x => 2usize.pow((x as u32) - 1),
         }

@@ -83,6 +83,7 @@ impl<T: GridElement> Grid<T> {
         self.locations = l;
     }
 
+    #[allow(dead_code)]
     pub fn find(&self, element: &T) -> Option<Position> {
         self.locations.iter().position(|i| i == element).map(|l| Position { row: l / self.cols, column: l % self.cols })
     }
@@ -104,7 +105,7 @@ impl<T: GridElement> Grid<T> {
 
     // Iterate over grid elements of a certain type.
     // Iterate over all grid points together with position
-
+    #[allow(dead_code)]
     pub fn neighbor_positions_satisfying_condition<F>(&self, position: &Position, include_neighbor: F) -> Vec<Position> 
         where F: Copy + FnOnce(&T,&T) -> bool    
     {

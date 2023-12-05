@@ -1,50 +1,34 @@
 // https://adventofcode.com/2023/day/1
 
-use itertools::Itertools;
 use crate::common::Solution;
 
+fn calibration_values(input: &str) -> u32 {
+    input
+    .split('\n')
+    .map(|line|
+        match ( line.chars().find(|c| c.is_ascii_digit()), 
+                line.chars().rev().find(|c| c.is_ascii_digit())) {
+            (Some(first), Some(last)) => (first as u32 - '0' as u32) * 10 + last as u32 - '0' as u32,
+            _ => 0,
+        })
+    .sum()
+}
+
 pub fn solve(input: &str) -> Solution {    
-    let p1: u32 = input
-        .split('\n')
-        .map(|line| -> u32 {
-            let digits: Vec<u32> = line
-                .chars()
-                .filter(|c| c.is_digit(10))
-                .map(|c| c as u32 - '0' as u32)
-                .collect();
+    let p1 = calibration_values(input);
 
-            match (digits.first(), digits.last()) {
-                (Some(a),Some(b)) => a*10 + b,
-                _ => 0,
-            }
-        })
-        .sum();
+    let modified = input
+    .replace("one","o1e")
+    .replace("two", "t2o")
+    .replace("three", "th3ee")
+    .replace("four", "fo4r")
+    .replace("five", "fi5e")
+    .replace("six", "s6x")
+    .replace("seven", "se7en")
+    .replace("eight", "ei8ht")
+    .replace("nine", "ni9e");
 
-    let textual_digits = vec!["one","two","three","four","five","six","seven","eight","nine"];
-    let p2: usize = input
-        .split('\n')
-        .map(|line| -> usize {
-            let digits: Vec<(usize,usize)> = line
-                .chars()
-                .enumerate()
-                .filter(|c| c.1.is_digit(10))
-                .map(|c| (c.0, c.1 as usize - '0' as usize))
-                .chain(
-                    textual_digits
-                        .iter()
-                        .enumerate()
-                        .map(|(d, t)| line.match_indices(*t).map(move |(idx, _)| (idx, (d+1) as usize)))
-                        .flatten()
-                )
-                .sorted_by(|a,b| Ord::cmp(&a.0, &b.0))
-                .collect();
-
-            match (digits.first(), digits.last()) {
-                (Some(a),Some(b)) => a.1*10 + b.1,
-                _ => 0,
-            }
-        })
-        .sum();
+    let p2: u32 = calibration_values(&modified);
 
     Solution::new(p1, p2)
 }
