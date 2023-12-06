@@ -16,15 +16,20 @@ fn number_of_wins(time: usize, distance: usize) -> usize {
     end - start + 1
 }
 
-pub fn solve(_input: &str) -> Solution {
-    let times = vec![47,70,75,66];
-    let distances = vec![282,1079,1147,1062];
-    let p1: usize = times.into_iter()
-        .zip(distances.into_iter())
-        .map(|(t, d)| number_of_wins(t, d)).product();
+pub fn solve(input: &str) -> Solution {
+    let times: Vec<usize> = input.split_ascii_whitespace()
+        .filter_map(|s| s.parse::<usize>().ok()).take(4).collect();
+    let distances: Vec<usize> = input.split_ascii_whitespace()
+        .filter_map(|s| s.parse::<usize>().ok()).skip(4).collect();
 
-    let time: usize = 47707566;
-    let distance: usize = 282107911471062;
+    let p1: usize = times.into_iter().zip(distances.into_iter())
+        .map(|(time,distance)| number_of_wins(time, distance))
+        .product();
+
+    let time: usize = input.lines().next().unwrap().split(":").last().unwrap()
+        .replace(" ","").parse::<usize>().unwrap();
+    let distance: usize = input.lines().skip(1).next().unwrap().split(":").last().unwrap()    
+        .replace(" ","").parse::<usize>().unwrap();
     let p2 = number_of_wins(time, distance);
 
     Solution::new(p1,p2)
