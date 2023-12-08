@@ -8,74 +8,57 @@ fn evaluate_line(line: &str, use_jokers: bool) -> Hand {
     let bid = line.split(' ').last().unwrap().parse::<usize>().unwrap();
 
     let mut h: usize = 0;
-    let mut i = 0;
     let mut cards = [0usize; 5];
     let mut num_each = [0usize; 15];
-    for c in line.chars().take(5) {
-        cards[i] = match c {
-            '2' => 2,
-            '3' => 3,
-            '4' => 4,
-            '5' => 5,
-            '6' => 6,
-            '7' => 7,
-            '8' => 8,
-            '9' => 9,
-            'T' => 10,
-            'J' => {
+    for (i,c) in line.as_bytes().iter().enumerate().take(5) {
+        let x = match c {
+            b'2' => 2,
+            b'3' => 3,
+            b'4' => 4,
+            b'5' => 5,
+            b'6' => 6,
+            b'7' => 7,
+            b'8' => 8,
+            b'9' => 9,
+            b'T' => 10,
+            b'J' => {
                 if use_jokers {
                     1
                 } else {
                     11
                 }
             }
-            'Q' => 12,
-            'K' => 13,
-            'A' => 14,
+            b'Q' => 12,
+            b'K' => 13,
+            b'A' => 14,
             _ => panic!("unkown"),
         };
-        h |= 1 << (cards[i] as usize);
-        num_each[cards[i] as usize] += 1;
-        i += 1;
+        cards[i] = x;
+        h |= 1 << x;
+        num_each[x] += 1;
     }
 
     let num_jokers = num_each[1];
-    let highest_count = num_each.iter().max().unwrap().clone();
+    let exactly_three_of_one_kind = *num_each.iter().max().unwrap() == 3;
 
     let hand_type = match h.count_ones() {
         1 => HandType::FiveOfAKind,
-        2 => {
-            if num_jokers > 0 {
-                HandType::FiveOfAKind
-            } else if highest_count == 3 {
-                HandType::FullHouse
-            } else {
-                HandType::FourOfAKind
-            }
-        }
-        5 => {
-            if num_jokers > 0 {
-                HandType::OnePair
-            } else {
-                HandType::HighCard
-            }
-        }
-        4 => {
-            if num_jokers == 0 {
-                HandType::OnePair
-            } else {
-                HandType::ThreeOfAKind
-            }
-        }
+        2 if num_jokers > 0 => HandType::FiveOfAKind,
+        2 if exactly_three_of_one_kind => HandType::FullHouse,
+        2 => HandType::FourOfAKind,
+        5 if num_jokers > 0 => HandType::OnePair,
+        5 => HandType::HighCard,
+        4 if num_jokers == 0 => HandType::OnePair,
+        4 => HandType::ThreeOfAKind,
         3 => {
             match num_jokers {
                 2 | 3 => HandType::FourOfAKind, // 3 1 1 or 2 2 1
-                1 => if highest_count == 3 {
+                1 => if exactly_three_of_one_kind {
                     HandType::FourOfAKind // 1 1 3
                 } else {
                     HandType::FullHouse // 1 2 2 
                 },
-                0 => if highest_count == 3 {
+                0 => if exactly_three_of_one_kind {
                     HandType::ThreeOfAKind
                 } else {
                     HandType::TwoPair
