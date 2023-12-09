@@ -2,9 +2,35 @@
 
 Challenged myself to do the 2020 edition of Advent of Code in Rust. Someone implemented the full 2019 season in Rust with a total running time of just 45 ms. I was wrecked by day 15 in 2020 (and also days 17, 23, 24, 25) so the total running time was 1.28 s. 
 
-Did slightly better in 2021, at 288 ms and change.
+Did slightly better in 2021 and 2022, at 288 ms and 350 ms respectively.
 
-If you want to get in touch, I'm @erikaderstedt on Twitter.
+## 2022
+    [Day  1] A: 68292           B: 203203                                             Elapsed time:      82 µs
+    [Day  2] A: 11150           B: 8295                                               Elapsed time:      46 µs
+    [Day  3] A: 7980            B: 2881                                               Elapsed time:      94 µs
+    [Day  4] A: 582             B: 893                                                Elapsed time:     102 µs
+    [Day  5] A: VCTFTJQCG       B: GCFGLDNJZ                                          Elapsed time:      88 µs
+    [Day  6] A: 1142            B: 2803                                               Elapsed time:      33 µs
+    [Day  7] A: 1749646         B: 1498966                                            Elapsed time:      40 µs
+    [Day  8] A: 1779            B: 172224                                             Elapsed time:     555 µs
+    [Day  9] A: 5981            B: 2352                                               Elapsed time:    1217 µs
+    [Day 10] A: 11960           B: EJCFPGLH                                           Elapsed time:      20 µs
+    [Day 11] A: 90294           B: 18170818354                                        Elapsed time:    2797 µs
+    [Day 12] A: 528             B: 522                                                Elapsed time:    2220 µs
+    [Day 13] A: 5843            B: 26289                                              Elapsed time:     827 µs
+    [Day 14] A: 961             B: 26375                                              Elapsed time:     244 µs
+    [Day 15] A: 4582667         B: 10961118625406                                     Elapsed time:      23 µs
+    [Day 16] A: 2181            B: 2824                                               Elapsed time:   11575 µs
+    [Day 17] A: 3069            B: 1523167155404                                      Elapsed time:     275 µs
+    [Day 18] A: 4604            B: 2604                                               Elapsed time:     268 µs
+    [Day 19] A: 1404            B: 5880                                               Elapsed time:    9696 µs
+    [Day 20] A: 4267            B: 6871725358451                                      Elapsed time:  110526 µs
+    [Day 21] A: 82225382988628  B: 3429411069028                                      Elapsed time:     769 µs
+    [Day 22] A: 155060          B: 3479                                               Elapsed time:     724 µs
+    [Day 23] A: 4045            B: 963                                                Elapsed time:  108744 µs
+    [Day 24] A: 266             B: 853                                                Elapsed time:   98781 µs
+    [Day 25] A: 2=222-2---22=1=--1-2 B: 0                                                  Elapsed time:     133 µs
+    Total elapsed time (generation + p1 + p2): 349.892123ms
 
 ## 2021
     [Day  1] A: 1711            B: 1743                                               Elapsed time:      90 µs
