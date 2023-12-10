@@ -18,6 +18,14 @@ pub struct Grid<T: GridElement> {
 type Row = usize;
 type Column = usize;
 
+#[derive(Debug,Clone)]
+pub enum Direction {
+    North,
+    East,
+    West,
+    South
+}
+
 #[derive(Clone,PartialEq,Eq, Hash)]
 pub struct Position { pub row: Row, pub column: Column }
 
@@ -41,6 +49,10 @@ impl Position {
 
     pub fn neighbors(&self) -> NeighborIterator {
         NeighborIterator { center_row: self.row, center_col: self.column, index: 0 }
+    }
+
+    pub fn nearest_neighbors(&self) -> NearestNeighborIterator {
+        NearestNeighborIterator { center_row: self.row, center_col: self.column, index: 0 }
     }
 }
 
@@ -90,6 +102,10 @@ impl<T: GridElement> Grid<T> {
 
     pub fn positions(&self) -> GridIterator {
         GridIterator { row: 0, col: 0, min_col:0, max_col: self.cols, max_row: self.rows }
+    }
+
+    pub fn positions_going_inward(&self) -> InwardGridIterator {
+        InwardGridIterator::of_size(self.rows, self.cols)
     }
 
     #[allow(dead_code)]
@@ -183,6 +199,67 @@ impl Iterator for GridIterator {
     }
 }
 
+pub struct InwardGridIterator {
+    direction: Direction,
+    row: usize,
+    col: usize,
+    east_end: usize, // cols-1
+    west_end: usize, // 0
+    south_end: usize, // rows-1
+    north_end: usize, // 1
+    total: usize, // rows * cols
+}
+
+impl InwardGridIterator {
+    fn of_size(rows: usize, cols: usize) -> InwardGridIterator {
+        InwardGridIterator { direction: Direction::East, 
+            row: 0, col: 0, east_end: cols - 1, west_end: 0, south_end: rows-1, north_end: 1, total: rows*cols }
+    }
+}
+
+impl Iterator for InwardGridIterator {
+    type Item = Position;
+    // east, south, use end_col, end_row.
+    // end_col, 0, end_col - 1, 1, end_col - 2
+    fn next(&mut self) -> Option<Position> {
+        if self.total == 0 { None } else {
+            let p = Some(Position { row: self.row, column: self.col});
+
+            match self.direction {
+                Direction::East => {
+                    self.col += 1;
+                    if self.col == self.east_end {
+                        self.direction = Direction::South;
+                        self.east_end -= 1
+                    }
+                },
+                Direction::South => {
+                    self.row += 1;
+                    if self.row == self.south_end {
+                        self.direction = Direction::West;
+                        self.south_end -= 1
+                    }
+                },
+                Direction::West => {
+                    self.col -= 1;
+                    if self.col == self.west_end {
+                        self.direction = Direction::North;
+                        self.west_end += 1
+                    }
+                }
+                Direction::North => {
+                    self.row -= 1;
+                    if self.row == self.north_end {
+                        self.direction = Direction::East;
+                        self.north_end += 1;
+                    }
+                }
+            }
+            self.total -= 1;
+            p
+        }
+    }
+}
 
 
 pub struct NeighborIterator {
@@ -211,3 +288,24 @@ impl Iterator for NeighborIterator {
     }
 }
 
+pub struct NearestNeighborIterator {
+    center_row: usize,
+    center_col: usize,
+    index: usize,
+}
+
+impl Iterator for NearestNeighborIterator {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Position> {
+        let n = match self.index {
+            0 => Some( Position { row: self.center_row - 1, column: self.center_col }),
+            1 => Some( Position { row: self.center_row, column: self.center_col - 1}),
+            2 => Some( Position { row: self.center_row, column: self.center_col + 1}),
+            3 => Some( Position { row: self.center_row + 1, column: self.center_col }),
+            _ => None,
+        };
+        self.index = self.index + 1;
+        n
+    }
+}
