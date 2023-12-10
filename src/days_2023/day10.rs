@@ -60,39 +60,13 @@ fn get_loop_and_starting_piece(start: &Position, direction: &Direction, maze: &G
     Some((the_loop, starting_part))
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum CrossingState {
     Inside,
     Outside,
     OutsideLeft,
     OutsideRight,
 }
-
-// impl CrossingState {
-
-//     fn transform(&self, direction: &Direction, part: &PipeMazePart) -> CrossingState {
-//         match *part {
-//             PipeMazePart::Ground | PipeMazePart::StartingPosition => self.clone(),
-//             PipeMazePart::HorizontalPipe => match direction {
-//                 Direction::East | Direction::West => panic!("Invalid transform"),
-//                 Direction::North | Direction::South => self.clone(),
-//             },
-//             PipeMazePart::VerticalPipePipe => match direction {
-//                 Direction::North | Direction::South => panic!("Invalid transform"),
-//                 Direction::East | Direction::West => self.clone(),
-//             },
-//             PipeMazePart::NorthEastBend => match direction {
-//                 Direction::East if self == CrossingState::Inside => CrossingState::OutsideLeft,
-//                 Direction::East if self == CrossingState::Outside => CrossingState::OutsideRight,
-//                 Direction::West if self == CrossingState::OutsideLeft => CrossingState::Outside,
-//                 Direction::West if self == CrossingState::OutsideRight => CrossingState::Inside,
-//                 Direction::North if self == CrossingState::No
-                
-//                 }
-//             }
-//         }
-//     }
-// }
 
 #[derive(PartialEq, Clone)]
 enum InsideState {
@@ -116,114 +90,67 @@ fn count_inside(the_loop: &Vec<Position>, maze: &Grid<PipeMazePart>) -> usize {
 
     let mut inside = vec![InsideState::Unknown; maze.rows * maze.cols];
 
-    // Set all easy outside positions
-    for position in maze.positions_going_inward() { 
-        if position.row == 0 || position.column == 0 || position.row == maze.rows - 1 || position.column == maze.cols - 1 {
-            inside[position.row * maze.cols + position.column] = InsideState::Outside; 
-        } else if the_loop.contains(&position) {
-            continue;
-        } else if position.nearest_neighbors().any(|p| inside[p.row * maze.cols + p.column] == InsideState::Outside) {
-            inside[position.row * maze.cols + position.column] = InsideState::Outside;                    
-        }
-    }
-
+    // The loop is known.
     for position in the_loop.iter() {
         inside[position.row * maze.cols + position.column] = InsideState::OnTheLoop;
     }
 
+    // Set all easy outside positions
+    for position in maze.positions_going_inward() { 
+        if inside[position.row * maze.cols + position.column] == InsideState::Unknown {
+            if position.row == 0 || position.column == 0 || position.row == maze.rows - 1 || position.column == maze.cols - 1 {
+                inside[position.row * maze.cols + position.column] = InsideState::Outside; 
+            } else if position.nearest_neighbors().any(|p| inside[p.row * maze.cols + p.column] == InsideState::Outside) {
+                inside[position.row * maze.cols + position.column] = InsideState::Outside;                    
+            }
+        }
+    }
+
+    // Evaluate all other positions.
     for position in maze.positions() {
         if inside[position.row * maze.cols + position.column] != InsideState::Unknown {
             continue;
         }
 
         let mut state = CrossingState::Outside;
-        if  position.column > maze.cols / 2 {
-            let mut column = maze.cols - 1;
-            while column >= position.column {
-                let p = Position { row: position.row, column };
-                column -= 1;     
+        let (direction, delta, start_value, _) = vec![Direction::East, Direction::West, Direction::South, Direction::North]
+            .into_iter()
+            .map(|d| match d {
+                Direction::East => { 
+                    let first_outside = (0..position.column).rev().find(|x| inside[position.row * maze.cols + x] == InsideState::Outside).unwrap();
+                    (d, (1,0), (first_outside, position.row), position.column - first_outside)
+                },
+                Direction::West => { 
+                    let first_outside = ((position.column + 1)..maze.cols).find(|x| inside[position.row * maze.cols + x] == InsideState::Outside).unwrap();
+                    (d, (-1,0), (first_outside, position.row), first_outside - position.column)
+                },
+                Direction::South => { 
+                    let first_outside = (0..position.row).rev().find(|y| inside[y * maze.cols + position.column] == InsideState::Outside).unwrap();
+                    (d, (0,1), (position.column, first_outside), position.row - first_outside)
+                },
+                Direction::North => { 
+                    let first_outside = ((position.row + 1)..maze.rows).find(|y| inside[y * maze.cols + position.column] == InsideState::Outside).unwrap();                
+                    (d, (0,-1), (position.column, first_outside), first_outside - position.row)
+                },
+            })
+            .min_by_key(|x| x.3).unwrap();
 
-                if !the_loop.contains(&p) { 
-                    if state == CrossingState::Outside {
-                        inside[p.row * maze.cols + p.column] = InsideState::Outside;
-                    }
-                    continue; 
+        let mut p = Position { row: start_value.1, column: start_value.0 };
+        while p != position {
+            if inside[p.row * maze.cols + p.column] == InsideState::Outside || !the_loop.contains(&p) { 
+                if state == CrossingState::Outside {
+                    inside[p.row * maze.cols + p.column] = InsideState::Outside;
                 }
-
-                state = match maze[&p] {
-                    PipeMazePart::HorizontalPipe | PipeMazePart::Ground | PipeMazePart::StartingPosition => state,
-                    PipeMazePart::VerticalPipe => match state {
-                            CrossingState::Outside => CrossingState::Inside,
-                            CrossingState::Inside => CrossingState::Outside,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::NorthEastBend => match state {
-                            CrossingState::OutsideLeft => CrossingState::Outside,
-                            CrossingState::OutsideRight => CrossingState::Inside,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::NorthWestBend => match state {
-                            CrossingState::Outside => CrossingState::OutsideLeft,
-                            CrossingState::Inside => CrossingState::OutsideRight,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::SouthWestBend => match state {
-                            CrossingState::Outside => CrossingState::OutsideRight,
-                            CrossingState::Inside => CrossingState::OutsideLeft,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::SouthEastBend => match state {
-                            CrossingState::OutsideLeft => CrossingState::Inside,
-                            CrossingState::OutsideRight => CrossingState::Outside,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    };
+            } else {            
+                state = maze[&p].transform_state(&state, &direction).unwrap();
             }
-        } else {
-            for column in 1..position.column {
-                let p = Position { row: position.row, column };
-                
-                if !the_loop.contains(&p) { 
-                    if state == CrossingState::Outside {
-                        inside[p.row * maze.cols + p.column] = InsideState::Outside;
-                    }
-                    continue; 
-                }
 
-                state = match maze[&p] {
-                    PipeMazePart::HorizontalPipe | PipeMazePart::Ground | PipeMazePart::StartingPosition => state,
-                    PipeMazePart::VerticalPipe => match state {
-                            CrossingState::Outside => CrossingState::Inside,
-                            CrossingState::Inside => CrossingState::Outside,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::NorthWestBend => match state {
-                            CrossingState::OutsideLeft => CrossingState::Inside,
-                            CrossingState::OutsideRight => CrossingState::Outside,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::NorthEastBend => match state {
-                            CrossingState::Outside => CrossingState::OutsideRight,
-                            CrossingState::Inside => CrossingState::OutsideLeft,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::SouthEastBend => match state {
-                            CrossingState::Outside => CrossingState::OutsideLeft,
-                            CrossingState::Inside => CrossingState::OutsideRight,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    PipeMazePart::SouthWestBend => match state {
-                            CrossingState::OutsideLeft => CrossingState::Outside,
-                            CrossingState::OutsideRight => CrossingState::Inside,
-                            _ => panic!("Invalid pipe part!"),
-                        },
-                    };            
-            }
+            p.row = p.row.checked_add_signed(delta.1).unwrap();
+            p.column = p.column.checked_add_signed(delta.0).unwrap();
         }
 
         if state == CrossingState::Inside {
             flood_fill_inside(&mut inside, &position, maze);
-
         }
     }
 
@@ -240,7 +167,6 @@ pub fn solve(input: &str) -> Solution {
     let (the_loop, missing_piece) = dirs.iter().find_map(|d| get_loop_and_starting_piece(&start, d, &maze)).unwrap();
 
     maze[&start] = missing_piece;
-
 
     let p1 = the_loop.len()/2;
     let p2 = count_inside(&the_loop, &mut maze);
@@ -261,39 +187,91 @@ enum PipeMazePart {
 }
 
 impl PipeMazePart {
-    fn follow(&self, direction: &Direction) -> Option<Direction> {
+    fn directions(&self) -> Option<(Direction, Direction)> {
         match self {
-            PipeMazePart::Ground | PipeMazePart::StartingPosition => None,
-            PipeMazePart::HorizontalPipe | PipeMazePart::VerticalPipe => Some(direction.clone()),
-            PipeMazePart::NorthEastBend => {
-                match direction {
-                    Direction::South => Some(Direction::East),
-                    Direction::West => Some(Direction::North),
-                    _ => None,
-                }
-            }
-            PipeMazePart::NorthWestBend => {
-                match direction {
-                    Direction::South => Some(Direction::West),
-                    Direction::East => Some(Direction::North),
-                    _ => None,
-                }
-            }
-            PipeMazePart::SouthEastBend => {
-                match direction {
-                    Direction::North => Some(Direction::East),
-                    Direction::West => Some(Direction::South),
-                    _ => None,
-                }
-            }
-            PipeMazePart::SouthWestBend => {
-                match direction {
-                    Direction::North => Some(Direction::West),
-                    Direction::East => Some(Direction::South),
-                    _ => None,
-                }
-            }
+            Self::VerticalPipe => Some((Direction::North, Direction::South)),
+            Self::HorizontalPipe => Some((Direction::West, Direction::East)),
+            Self::NorthEastBend => Some((Direction::East, Direction::North)),
+            Self::NorthWestBend => Some((Direction::North, Direction::West)),
+            Self::SouthEastBend => Some((Direction::East, Direction::South)),
+            Self::SouthWestBend => Some((Direction::West, Direction::South)),
+            _ => None,
         }
+    }
+
+    fn transform_state(&self, state: &CrossingState, traveling: &Direction) -> Option<CrossingState> {
+        match self.directions() {
+            Some((d1,d2)) if traveling.reverse() == d1 || traveling.reverse() == d2 => {
+                let out = if traveling.reverse() == d1 { d2 } else { d1 };
+                match state {
+                    CrossingState::Inside | CrossingState::Outside => None,
+                    CrossingState::OutsideLeft => {
+                        if out == traveling.counter_clockwise() {
+                            Some(CrossingState::Inside)
+                        } else if out == traveling.clockwise() {
+                            Some(CrossingState::Outside)
+                        } else {
+                            Some(*state)
+                        }},
+                    &CrossingState::OutsideRight => {
+                        if out == traveling.clockwise() {
+                            Some(CrossingState::Inside)
+                        } else if out == traveling.counter_clockwise() {
+                            Some(CrossingState::Outside)
+                        } else {
+                            Some(*state)
+                        }},
+                }
+            },
+            Some((d1,d2)) if *traveling == d1 || *traveling == d2 => {
+                let other = if *traveling == d1 { d2 } else { d1 };
+                match state {
+                    CrossingState::Inside => {
+                        if other == traveling.counter_clockwise() {
+                            Some(CrossingState::OutsideLeft)
+                        } else if other == traveling.clockwise() {
+                            Some(CrossingState::OutsideRight)
+                        } else {
+                            // This should be caught by the first case.
+                            panic!("What is going on");
+                        }
+                    },
+                    CrossingState::Outside => {
+                        if other == traveling.counter_clockwise() {
+                            Some(CrossingState::OutsideRight)
+                        } else if other == traveling.clockwise() {
+                            Some(CrossingState::OutsideLeft)
+                        } else {
+                            // This should be caught by the first case.
+                            panic!("What is going on");
+                        }
+                    },
+                    CrossingState::OutsideLeft | CrossingState::OutsideRight => None,
+                }
+            },
+            Some(_) => match state {
+                CrossingState::Inside => Some(CrossingState::Outside),
+                CrossingState::Outside => Some(CrossingState::Inside),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+    
+    fn follow(&self, direction: &Direction) -> Option<Direction> {
+        match self.directions() {
+            Some((d1,d2)) => {
+                if direction.reverse() == d1 {
+                    Some(d2)
+                } else if direction.reverse() == d2 {
+                    Some(d1)
+                } else {
+                    None
+                }
+            },
+            None => None,
+        }
+        
     }
 }
 

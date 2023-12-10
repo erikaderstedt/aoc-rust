@@ -18,12 +18,41 @@ pub struct Grid<T: GridElement> {
 type Row = usize;
 type Column = usize;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone, PartialEq, Eq)]
 pub enum Direction {
     North,
     East,
     West,
     South
+}
+
+impl Direction {
+    pub fn reverse(&self) -> Direction {
+        match self {
+            Direction::East => Direction::West,
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::West => Direction::East,
+        }
+    }
+
+    pub fn clockwise(&self) -> Direction {
+        match self {
+            Direction::East => Direction::South,
+            Direction::North => Direction::East,
+            Direction::South => Direction::West,
+            Direction::West => Direction::North,
+        }
+    }
+
+    pub fn counter_clockwise(&self) -> Direction {
+        match self {
+            Direction::East => Direction::North,
+            Direction::North => Direction::West,
+            Direction::South => Direction::East,
+            Direction::West => Direction::South,
+        }
+    }
 }
 
 #[derive(Clone,PartialEq,Eq, Hash)]
