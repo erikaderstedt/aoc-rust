@@ -22,11 +22,12 @@ type Column = usize;
 pub enum Direction {
     North,
     East,
+    South,
     West,
-    South
 }
 
 impl Direction {
+
     pub fn reverse(&self) -> Direction {
         match self {
             Direction::East => Direction::West,
@@ -36,6 +37,7 @@ impl Direction {
         }
     }
 
+    #[allow(dead_code)]
     pub fn clockwise(&self) -> Direction {
         match self {
             Direction::East => Direction::South,
@@ -45,6 +47,7 @@ impl Direction {
         }
     }
 
+    #[allow(dead_code)]
     pub fn counter_clockwise(&self) -> Direction {
         match self {
             Direction::East => Direction::North,
@@ -73,6 +76,15 @@ impl Position {
     pub fn below_right(&self) -> Position { Position { row: self.row + 1, column: self.column + 1}}
     pub fn left(&self) -> Position { Position { row: self.row, column: self.column - 1 }}
     pub fn right(&self) -> Position { Position { row: self.row, column: self.column + 1 }}
+
+    pub fn along(&self, direction: &Direction) -> Self {
+        match direction {
+            Direction::East => Position { row: self.row, column: self.column + 1 },
+            Direction::North => Position { row: self.row - 1, column: self.column },
+            Direction::West => Position { row: self.row, column: self.column - 1 },
+            Direction::South => Position { row: self.row + 1, column: self.column },        
+        }
+    }
 
     // pub fn origin() -> Position { Position { row: 0usize, column: 0 } }
 
@@ -133,6 +145,7 @@ impl<T: GridElement> Grid<T> {
         GridIterator { row: 0, col: 0, min_col:0, max_col: self.cols, max_row: self.rows }
     }
 
+    #[allow(dead_code)]
     pub fn positions_going_inward(&self) -> InwardGridIterator {
         InwardGridIterator::of_size(self.rows, self.cols)
     }
@@ -240,6 +253,7 @@ pub struct InwardGridIterator {
 }
 
 impl InwardGridIterator {
+    #[allow(dead_code)]
     fn of_size(rows: usize, cols: usize) -> InwardGridIterator {
         InwardGridIterator { direction: Direction::East, 
             row: 0, col: 0, east_end: cols - 1, west_end: 0, south_end: rows-1, north_end: 1, total: rows*cols }
@@ -289,7 +303,6 @@ impl Iterator for InwardGridIterator {
         }
     }
 }
-
 
 pub struct NeighborIterator {
     center_row: usize,
