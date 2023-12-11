@@ -100,7 +100,6 @@ impl Position {
 impl<T: GridElement> Grid<T> {
 
     #[allow(dead_code)]
-
     pub fn load(input: &str) -> Grid<T> {
         let cols = input.lines().next().unwrap().len();
         let locations: Vec<T> = input.chars().filter_map(|c| T::from_char(&c)).collect();
