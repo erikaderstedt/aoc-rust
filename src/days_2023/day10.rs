@@ -50,8 +50,6 @@ fn count_inside(the_loop: &Vec<Position>, maze: &Grid<PipeMazePart>) -> usize {
 pub fn solve(input: &str) -> Solution {
     let mut maze: Grid<PipeMazePart> = Grid::load(input);
 
-    maze.enclose(PipeMazePart::Ground);
-
     let start = maze.find(&PipeMazePart::StartingPosition).unwrap();
     
     let (the_loop, missing_piece) = vec![Direction::North, Direction::West, Direction::South]
