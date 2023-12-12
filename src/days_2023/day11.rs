@@ -19,12 +19,8 @@ pub fn solve(input: &str) -> Solution {
                 .all(|v| *v == Space::Empty) {
                     *acc += 1;
             }
-<<<<<<< HEAD
             Some(*acc) })
         .collect();
-=======
-            Some(*acc) }).collect();
->>>>>>> b2b4b2a4dba226be20eefa12741ae0c8fa639c62
 
     let empty_rows: Vec<usize> = (0..all_space.rows)
         .scan(0, |acc, r| {
