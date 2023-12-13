@@ -70,8 +70,6 @@ impl ConditionRecord {
 pub fn solve(input: &str) -> Solution {
     let recs: Vec<ConditionRecord> = parsed_from_each_line(input);
 
-    println!("{}", recs.iter().map(|r| r.springs.len()).max().unwrap() * 5 + 4);
-
     let p1: usize = recs.iter().map(|r| r.num_matches()).sum();
     let p2: usize = recs.iter().map(|r| r.unfold(5).num_matches()).sum();
 
