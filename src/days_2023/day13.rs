@@ -40,6 +40,10 @@ fn find_reflection_with_smudge(grid: &Grid<Ground>) -> Option<usize> {
     .map(|c| c + 1))
 }
 
+// TODO: replace Grid with a u32 for each row. 
+// Use xor and count_ones to identify one row that differs by 1
+
+
 
 pub fn solve(input: &str) -> Solution {
     let (p1, p2) = input.split("\n\n").map(|s| {        
