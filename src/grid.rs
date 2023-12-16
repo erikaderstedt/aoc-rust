@@ -18,7 +18,7 @@ pub struct Grid<T: GridElement> {
 type Row = usize;
 type Column = usize;
 
-#[derive(Debug,Clone, PartialEq, Eq)]
+#[derive(Debug,Clone, PartialEq, Eq, Hash)]
 pub enum Direction {
     North,
     East,

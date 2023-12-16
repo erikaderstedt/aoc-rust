@@ -24,9 +24,8 @@ pub fn solve(input: &str) -> Solution {
             panic!("Invalid operation")
         };
 
-        let id: usize = label.as_bytes().iter().fold(0u64, |current_value, b| {
-            ((current_value + *b as u64) * 17) & 0xff
-        }) as usize;
+        let id: usize = label.as_bytes().iter()
+                             .fold(0u64, |v, b| ((v + *b as u64) * 17) & 0xff) as usize;
 
         p1 += id;
 
@@ -37,10 +36,9 @@ pub fn solve(input: &str) -> Solution {
                 }
             },
             Operation::InsertOrReplace(focal_length) => {
-                if let Some(i) = boxes[id].iter().position(|l| l.0 == label) {
-                    boxes[id][i].1 = focal_length;
-                } else {
-                    boxes[id].push((label, focal_length))
+                match boxes[id].iter().position(|l| l.0 == label) {
+                    Some(i) => { boxes[id][i].1 = focal_length; },
+                    None => { boxes[id].push((label, focal_length)) },
                 }
             }
         }
