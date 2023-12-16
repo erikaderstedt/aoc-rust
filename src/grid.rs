@@ -18,7 +18,7 @@ pub struct Grid<T: GridElement> {
 type Row = usize;
 type Column = usize;
 
-#[derive(Debug,Clone, PartialEq, Eq, Hash)]
+#[derive(Debug,Clone, PartialEq, Eq)]
 pub enum Direction {
     North,
     East,
@@ -27,6 +27,15 @@ pub enum Direction {
 }
 
 impl Direction {
+
+    pub fn u8(&self) -> u8 {
+        match self {
+            Direction::East => 1u8,
+            Direction::North => 2u8,
+            Direction::South => 4u8,
+            Direction::West => 8u8,
+        }
+    }
 
     pub fn reverse(&self) -> Direction {
         match self {

@@ -1,6 +1,5 @@
 // https://adventofcode.com/2023/day/16
 
-use std::collections::HashSet;
 use crate::{common::Solution, grid::{GridElement, Grid, Direction}};
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -13,7 +12,7 @@ enum Stuff {
 
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 struct Beam {
     row: isize,
     column: isize,
@@ -21,12 +20,10 @@ struct Beam {
 }
 
 fn num_energized(grid: &Grid<Stuff>, beam: Beam) -> usize {
+    let mut visited = vec![0u8; grid.cols * grid.rows];
     let mut beams: Vec<Beam> = vec![beam];
-    let mut energized: HashSet<usize> = HashSet::new();
-    let mut visited_beam_states: HashSet<Beam> = HashSet::new();
 
-    while beams.len() > 0 {
-        let mut beam = beams.pop().unwrap();
+    while let Some(mut beam) = beams.pop() {
 
         loop {
             // Move beam
@@ -41,19 +38,19 @@ fn num_energized(grid: &Grid<Stuff>, beam: Beam) -> usize {
             if row < 0 || row >= grid.rows as isize || column < 0 || column >= grid.cols as isize {
                 break;
             }
-            
-            if visited_beam_states.contains(&beam) {
-                break;
-            } else {
-                visited_beam_states.insert(beam.clone());
-            }
-            
-            // Energize space 
+
             let p = (row as usize) * grid.cols + (column as usize);
-            energized.insert(p.clone());
-        
+                    
+            if visited[p] & beam.direction.u8() != 0 {
+                break
+            } else {
+                visited[p] |= beam.direction.u8();
+            }
+                    
             // Check what is there
-            let direction = match grid.locations[p] {
+            beam.row = row;
+            beam.column = column;
+            beam.direction = match grid.locations[p] {
                 Stuff::Empty => { beam.direction },
                 Stuff::HorizontalSplitter => {
                     match beam.direction {
@@ -90,14 +87,10 @@ fn num_energized(grid: &Grid<Stuff>, beam: Beam) -> usize {
                     }
                 }
             };
-
-            beam.row = row;
-            beam.column = column;
-            beam.direction = direction;
         }
-
     }
-    energized.len()
+
+    visited.into_iter().filter(|u| *u != 0).count()
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -112,10 +105,9 @@ pub fn solve(input: &str) -> Solution {
     .chain((0..grid.cols).map(|c| Beam { row: grid.rows as isize, column: c as isize, direction: Direction::North }))
     .map(|beam| num_energized(&grid, beam))
     .max().unwrap();
-     
+
     Solution::new(p1, p2)
 }
-
 
 impl GridElement for Stuff {
     fn from_char(c: &char) -> Option<Self> { 
