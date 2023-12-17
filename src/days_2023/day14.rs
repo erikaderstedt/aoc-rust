@@ -67,7 +67,10 @@ fn slide_west(grid: &mut Grid<Ground>) {
     for row in 0..grid.rows {
         for column in 1..grid.cols {
             if grid.locations[row*grid.cols + column] == Ground::Round {
-                if let Some(new_col) = (0..column).rev().take_while(|c| grid.locations[row*grid.cols + c] == Ground::Empty).last() {
+                if let Some(new_col) = (0..column)
+                    .rev()
+                    .take_while(|c| grid.locations[row*grid.cols + c] == Ground::Empty)
+                    .last() {
                     grid.locations[row * grid.cols + new_col] = Ground::Round;
                     grid.locations[row*grid.cols + column] = Ground::Empty;
                 }
@@ -77,10 +80,12 @@ fn slide_west(grid: &mut Grid<Ground>) {
 }
 
 fn slide_south(grid: &mut Grid<Ground>) {
-        for row in (0..grid.rows-1).rev() {
-            for column in 0..grid.cols {
-                if grid.locations[row*grid.cols + column] == Ground::Round {
-                if let Some(new_row) = (row+1..grid.rows).take_while(|r| grid.locations[r*grid.cols + column] == Ground::Empty).last() {
+    for row in (0..grid.rows-1).rev() {
+        for column in 0..grid.cols {
+            if grid.locations[row*grid.cols + column] == Ground::Round {
+                if let Some(new_row) = (row+1..grid.rows)
+                    .take_while(|r| grid.locations[r*grid.cols + column] == Ground::Empty)
+                    .last() {
                     grid.locations[new_row * grid.cols + column] = Ground::Round;
                     grid.locations[row*grid.cols + column] = Ground::Empty;
                 }
@@ -93,7 +98,9 @@ fn slide_east(grid: &mut Grid<Ground>) {
     for row in 0..grid.rows {
         for column in (0..grid.cols-1).rev() {
             if grid.locations[row*grid.cols + column] == Ground::Round {
-                if let Some(new_col) = (column+1..grid.cols).take_while(|c| grid.locations[row*grid.cols + c] == Ground::Empty).last() {
+                if let Some(new_col) = (column+1..grid.cols)
+                    .take_while(|c| grid.locations[row*grid.cols + c] == Ground::Empty)
+                    .last() {
                     grid.locations[row * grid.cols + new_col] = Ground::Round;
                     grid.locations[row*grid.cols + column] = Ground::Empty;
                 }

@@ -118,7 +118,8 @@ impl<T: GridElement> Grid<T> {
 
     #[allow(dead_code)]
     pub fn load(input: &str) -> Grid<T> {
-        let cols = input.lines().next().unwrap().len();
+        let cols = input.as_bytes().iter().position(|c| *c == '\n' as u8).unwrap();
+        // let cols = input.lines().next().unwrap().len();
         let locations: Vec<T> = input.chars().filter_map(|c| T::from_char(&c)).collect();
         let rows = locations.len()/cols;
         assert!(rows * cols == locations.len(), "Grid is not rectangular, perhaps some items won't parse");
