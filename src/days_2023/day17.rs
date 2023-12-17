@@ -7,57 +7,68 @@ use pathfinding::prelude::dijkstra;
 struct State {
     x: u8,
     y: u8,
-    consecutive: u8,
-    direction: Direction,
+    next_directions: [Direction;2],
 }
 
 impl State {
-    fn step(&self, direction: Direction, grid: &Grid<u8>) -> Option<(State,usize)> {
+    
+    fn proceed<const MIN_FOR_TURN: u8, const MAX_CONSECUTIVE: u8>(&self, direction: Direction, grid: &Grid<u8>) -> Vec<(State,usize)> {
+        let step = |direction: &Direction, x: &mut isize, y: &mut isize| -> bool {
+            match direction {
+                Direction::East => { *x += 1; },
+                Direction::North => { *y -= 1; },
+                Direction::West => { *x -= 1; },
+                Direction::South => { *y += 1; },
+            };
+            *x >= 0 && *y >= 0 && *x < grid.cols as isize && *y < grid.rows as isize
+        };
+
+        let mut v: Vec<(State,usize)> = Vec::with_capacity(10);
         let mut x = self.x as isize;
         let mut y = self.y as isize;
-        match direction {
-            Direction::East => { x += 1; },
-            Direction::North => { y -= 1; },
-            Direction::West => { x -= 1; },
-            Direction::South => { y += 1; },
-        };
-        if x >= 0 && y >= 0 && x < grid.cols as isize && y < grid.rows as isize {
-            let cost = grid.locations[(y as usize) * grid.cols + (x as usize)] as usize;
-            let consecutive = if direction == self.direction { self.consecutive + 1 } else { 1 };
-            Some((State { x: x as u8, y: y as u8, consecutive , direction }, cost))
-        } else {
-            None
+        let mut cost = 0;
+        for _ in 0..MIN_FOR_TURN {
+            if step(&direction, &mut x, &mut y) {
+                cost += grid.locations[(y as usize) * grid.cols + (x as usize)];
+            } else {
+                return vec![];
+            }
         }
+
+        // Add all intermediate states until MAX_CONSECUTIVE
+        for _ in MIN_FOR_TURN..=MAX_CONSECUTIVE {
+            v.push((State { x: x as u8, y: y as u8, next_directions: direction.turns() }, cost as usize));            
+            if step(&direction, &mut x, &mut y) { 
+                cost += grid.locations[(y as usize) * grid.cols + (x as usize)];
+            } else {
+                break;
+            }
+        }
+        v
     }    
+}
+
+fn part<const MIN_FOR_TURN: u8, const MAX_CONSECUTIVE: u8>(grid: &Grid<u8>) -> usize {
+    let is_end = |state: &State| -> bool {
+        state.x as usize == grid.cols - 1 && state.y as usize == grid.rows - 1
+    };
+    
+    let get_successors = |state: &State| {        
+        state.proceed::<MIN_FOR_TURN, MAX_CONSECUTIVE>(state.next_directions[0].clone(), grid)
+            .into_iter()
+            .chain(state.proceed::<MIN_FOR_TURN, MAX_CONSECUTIVE>(state.next_directions[1].clone(), grid).into_iter())
+    };
+
+    let start = State { x: 0, y: 0, next_directions: [Direction::East, Direction::South]};
+    dijkstra(&start, get_successors, is_end).unwrap().1
 }
 
 pub fn solve(input: &str) -> Solution {
     let grid: Grid<u8> = Grid::load(input);
 
-    let is_end = |state: &State| -> bool {
-        state.x as usize == grid.cols - 1 && state.y as usize == grid.rows - 1
-    };
-    
-    let get_successors_p1 = |state: &State| -> Vec<(State,usize)> {
-        let mut v: Vec<(State,usize)> = Vec::with_capacity(3);
-        if state.consecutive < 3 { if let Some(x) = state.step(state.direction.clone(), &grid) { v.push(x); } }
-        if let Some(x) = state.step(state.direction.clockwise(), &grid) { v.push(x); }
-        if let Some(x) = state.step(state.direction.counter_clockwise(), &grid) { v.push(x); }
-        v
-    };
+    let p1 = part::<1,3>(&grid);
+    let p2 = part::<4,10>(&grid);
 
-    let get_successors_p2 = |state: &State| -> Vec<(State,usize)> {
-        let mut v: Vec<(State,usize)> = Vec::with_capacity(3);
-        if state.consecutive < 10 { if let Some(x) = state.step(state.direction.clone(), &grid) { v.push(x); } }
-        if state.consecutive >= 4 { if let Some(x) = state.step(state.direction.clockwise(), &grid) { v.push(x); } }
-        if state.consecutive >= 4 { if let Some(x) = state.step(state.direction.counter_clockwise(), &grid) { v.push(x); } }
-        v
-    };
-
-    let start = State { x: 0, y: 0, consecutive: 0, direction: Direction::East};
-    let p1 = dijkstra(&start, get_successors_p1, is_end).unwrap().1;
-    let p2 = dijkstra(&start, get_successors_p2, is_end).unwrap().1;
-    
     Solution::new(p1, p2)
 }
 

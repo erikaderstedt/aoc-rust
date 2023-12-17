@@ -65,6 +65,14 @@ impl Direction {
             Direction::West => Direction::South,
         }
     }
+
+    #[allow(dead_code)]
+    pub fn turns(&self) -> [Direction; 2] {
+        match self {
+            Direction::East | Direction::West => [Direction::North, Direction::South],
+            Direction::North | Direction::South => [Direction::West, Direction::East],
+        }
+    }
 }
 
 #[derive(Clone,PartialEq,Eq, Hash)]
