@@ -36,7 +36,7 @@ impl State {
         }
 
         // Add all intermediate states until MAX_CONSECUTIVE
-        for _ in MIN_FOR_TURN..=MAX_CONSECUTIVE {
+        for _ in MIN_FOR_TURN..MAX_CONSECUTIVE {
             v.push((State { x: x as u8, y: y as u8, next_directions: direction.turns() }, cost as usize));            
             if step(&direction, &mut x, &mut y) { 
                 cost += grid.locations[(y as usize) * grid.cols + (x as usize)];
@@ -44,6 +44,7 @@ impl State {
                 break;
             }
         }
+        v.push((State { x: x as u8, y: y as u8, next_directions: direction.turns() }, cost as usize));            
         v
     }    
 }
