@@ -9,7 +9,6 @@ enum Stuff {
     MirrorBackslash,
     VerticalSplitter,
     HorizontalSplitter,
-
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -99,12 +98,12 @@ pub fn solve(input: &str) -> Solution {
     let p1 = num_energized(&grid, Beam { row: 0, column: -1, direction: Direction::East});
 
     let p2 =
-    (0..grid.rows).map(|r| Beam { row: r as isize, column: -1, direction: Direction::East })
+    (1..grid.rows).map(|r| Beam { row: r as isize, column: -1, direction: Direction::East })
     .chain((0..grid.rows).map(|r| Beam { row: r as isize, column: grid.cols as isize, direction: Direction::West }))
     .chain((0..grid.cols).map(|c| Beam { row: -1, column: c as isize, direction: Direction::South }))
     .chain((0..grid.cols).map(|c| Beam { row: grid.rows as isize, column: c as isize, direction: Direction::North }))
     .map(|beam| num_energized(&grid, beam))
-    .max().unwrap();
+    .max().unwrap().max(p1);
 
     Solution::new(p1, p2)
 }
