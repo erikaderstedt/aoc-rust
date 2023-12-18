@@ -216,6 +216,7 @@ impl<T: GridElement> Grid<T> {
             None
         }
     }
+
 }
 
 impl<T: GridElement> Index<&Position> for Grid<T> {
