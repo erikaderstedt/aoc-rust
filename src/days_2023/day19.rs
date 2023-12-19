@@ -1,30 +1,27 @@
 // https://adventofcode.com/2023/day/19
 
 use std::collections::HashMap;
-
 use crate::common::Solution;
 
-#[derive(Debug,Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Destination<'a> {
     Rejected,
     Accepted,
     Workflow(&'a str),
 }
 
-#[derive(Debug)]
 enum Condition {
     Always,
     LessThan(u8,usize),
     GreaterThan(u8,usize),
 }
 
-#[derive(Debug)]
 struct Rule<'a> {
     destination: Destination<'a>,
     condition: Condition,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 enum Limit {
     LessThan(usize),
     LessThanOrEqual(usize),
@@ -32,36 +29,42 @@ enum Limit {
     GreaterThanOrEqual(usize)
 }
 
-#[derive(Debug, Clone)]
 struct Search {
-    h: HashMap<u8, Vec<Limit>>,
+    x: std::ops::RangeInclusive<usize>,
+    m: std::ops::RangeInclusive<usize>,
+    a: std::ops::RangeInclusive<usize>,
+    s: std::ops::RangeInclusive<usize>,
 }
 
 impl Search {
-
-    fn start() -> Search {
-        Search { h: vec![(b'x', vec![]), (b'm', vec![]), (b'a', vec![]), (b's', vec![])].into_iter().collect() }
+    fn new() -> Search {
+        Search { x: 1..=4000, m: 1..=4000, a: 1..=4000, s: 1..=4000 }
     }
 
-    fn inserting(&self, key: u8, limit: Limit) -> Self {
-        let mut v = self.h.clone();
-        match v.get_mut(&key) {
-            Some(l) => { l.push(limit); },
-            None => unreachable!(),
+    fn impose_limit(range: &std::ops::RangeInclusive<usize>, limit: Limit) -> std::ops::RangeInclusive<usize> {
+        match limit {
+            Limit::LessThan(value) =>           *range.start()..=(value-1),
+            Limit::LessThanOrEqual(value) =>    *range.start()..=value,
+            Limit::GreaterThan(value) =>        (value+1)..=*range.end(),
+            Limit::GreaterThanOrEqual(value) => value..=*range.end(),
         }
-        Search { h: v }
+    } 
+
+    fn inserting(&self, u: u8, limit: Limit) -> Self {
+        match u {
+            b'x' => Search { x: Search::impose_limit(&self.x, limit), m: self.m.clone(), a: self.a.clone(), s: self.s.clone() },
+            b'm' => Search { x: self.x.clone(), m: Search::impose_limit(&self.m, limit), a: self.a.clone(), s: self.s.clone() },
+            b'a' => Search { x: self.x.clone(), m: self.m.clone(), a: Search::impose_limit(&self.a, limit), s: self.s.clone() },
+            b's' => Search { x: self.x.clone(), m: self.m.clone(), a: self.a.clone(), s: Search::impose_limit(&self.s, limit) },
+            _ => unreachable!()
+        }
     }
 
     fn total(&self) -> usize {
-        self.h.iter()
-            .map(|(_,limits)| 
-                    (1..=4000).filter(|value| limits.iter().all(|limit| match limit {
-                        Limit::GreaterThan(check) => value > check,
-                        Limit::GreaterThanOrEqual(check) => value >= check,
-                        Limit::LessThan(check) => value < check,
-                        Limit::LessThanOrEqual(check) => value <= check,
-                    })).count())
-            .product()
+        (if self.x.end() >= self.x.start() { self.x.end() - self.x.start() + 1} else { 0 }) * 
+        (if self.m.end() >= self.m.start() { self.m.end() - self.m.start() + 1} else { 0 }) * 
+        (if self.a.end() >= self.a.start() { self.a.end() - self.a.start() + 1} else { 0 }) * 
+        (if self.s.end() >= self.s.start() { self.s.end() - self.s.start() + 1} else { 0 })
     }
 
     fn apply(&self, current_workflow: &Vec<Rule>, index: usize, workflows: &HashMap<&str, Vec<Rule>>) -> usize {
@@ -139,15 +142,8 @@ pub fn solve(input: &str) -> Solution {
                 _ => Rule { condition: Condition::Always, destination: Destination::Workflow(s) },
             }).collect();
 
-        if rules.iter().all(|r| r.destination == Destination::Accepted) {
-            (name, vec![Rule { condition: Condition::Always, destination: Destination::Accepted }])
-        } else if rules.iter().all(|r| r.destination == Destination::Rejected) {
-            (name, vec![Rule { condition: Condition::Always, destination: Destination::Rejected }])
-        } else {
-            (name, rules)
-        }
+        (name, rules)
     }).collect();
-
     
     let p1: usize = s2.lines().map(|line| -> usize {
         let h:HashMap<u8,usize> = line[1..line.len()-1].split(',')
@@ -171,9 +167,7 @@ pub fn solve(input: &str) -> Solution {
         }
     }).sum();
 
-    let s = Search::start();
-
-    let p2 = s.apply(&workflows["in"], 0, &workflows);
+    let p2 = Search::new().apply(&workflows["in"], 0, &workflows);
 
     Solution::new(p1, p2)
 }
