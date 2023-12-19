@@ -1,29 +1,26 @@
-// https://adventofcode.com/2023/day/17
+// https://adventofcode.com/2023/day/18
 
 use crate::{common::Solution, grid::Direction};
 
-#[derive(Debug)]
 struct Item {
     direction: Direction,
-    length: usize,
+    length: i64,
 }
 
 fn part<F>(input: &str, f: F) -> i64 where F: Fn(&str) -> Item {
-    let mut x = 0i64;
-    let mut y = 0i64;
-    let mut area = 0;
-    for line in input.lines() {        
-        let item = f(line);
-        let prev = (x,y);
+    input.lines().map(f).scan((0i64, 1i64), |state, item| {
         match item.direction {
-            Direction::East => { x += item.length as i64; },
-            Direction::South => { y += item.length as i64; },
-            Direction::North => { y -= item.length as i64; },
-            Direction::West => { x -= item.length as i64; },
-        }
-        area += (y - prev.1) * (x + prev.0) + item.length as i64;
-    }
-    area/2 + 1
+            // Dig a single line
+            Direction::East => { state.0 += item.length; state.1 += item.length; },
+            // Digging the same way back does not add any area.
+            Direction::West => { state.0 -= item.length; },
+            // Digging south adds the area under the line, plus a single line
+            Direction::South => { state.1 += item.length * state.0 + item.length; },
+            // Digging north subtracts the area under the line, but not the single line.
+            Direction::North => { state.1 -= item.length * state.0},
+        };
+        Some(state.1)
+    }).last().unwrap().abs()  // Counter-clockwise loops give a negative area
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -33,24 +30,25 @@ pub fn solve(input: &str) -> Solution {
             b'D' => Direction::South,
             b'L' => Direction::West,
             b'R' => Direction::East,
-            _ => panic!("?"),
+            _ => panic!("Unknown direction."),
         };
-        let length = line.split(' ').skip(1).next().unwrap().parse::<usize>().unwrap();
+        let d1 = line.as_bytes()[2] as i64 - '0' as i64;
+        let d2 = line.as_bytes()[3] as i64 - '0' as i64;
+        let length = if d2 < 0 { d1 } else { d1 * 10 + d2 };
         Item { direction, length }
     });
     
     let p2 = part(input, |line| {
-        let hex = line.split('#').skip(1).next().unwrap();
-        let v = i64::from_str_radix(&hex[0..6], 16).unwrap();
-        let length = v / 16;
-        let direction = match v % 16 {
-            3 => Direction::North,
-            1 => Direction::South,
-            2 => Direction::West,
-            0 => Direction::East,
-            _ => panic!("?"),
+        let (_, hex) = line.split_once('#').unwrap();
+        let length = i64::from_str_radix(&hex[0..5], 16).unwrap();
+        let direction = match hex.as_bytes()[5] {
+            b'3' => Direction::North,
+            b'1' => Direction::South,
+            b'2' => Direction::West,
+            b'0' => Direction::East,
+            _ => panic!("Unknown direction."),
         };
-        Item { direction, length: length as usize }
+        Item { direction, length }
     });
 
     Solution::new(p1, p2)
