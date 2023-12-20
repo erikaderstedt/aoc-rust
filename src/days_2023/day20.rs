@@ -1,10 +1,11 @@
 // https://adventofcode.com/2023/day/20
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use crate::common::Solution;
 
 const P1_BUTTON_PRESSES: usize = 1000;
+const APPROX_SIGNALS_SENT_PER_BUTTON_PRESS: usize = 200;
 
 #[derive(PartialEq, Eq,Clone, Debug,Copy)]
 enum Kind {
@@ -56,68 +57,27 @@ pub fn solve(input: &str) -> Solution {
             }})
         .collect();
 
-    let mut num_low = 0;
-    let mut num_high = 0;
-
-    for _button_push in 0..P1_BUTTON_PRESSES {
-        let mut v: VecDeque<(bool, usize, usize)> = VecDeque::new();
-        v.push_front((false, names["broadcaster"], 0));
-        num_low += 1;
-
-        while let Some((signal, module_index, source_index)) = v.pop_front() {
-            match modules.get_mut(module_index) {
-                Some(module) => {
-                    let pulse_to_send: Option<bool> = match module.kind {
-                        Kind::Broadcaster => Some(signal),
-                        Kind::FlipFlop(mut state) => {
-                            if signal == false {
-                                state = !state;
-                                module.kind = Kind::FlipFlop(state);
-                                Some(state)
-                            } else {
-                                None
-                            }},
-                        Kind::Conjunction(mut inputs, num_inputs) => {
-                            if signal {
-                                inputs |= 1 << source_index;
-                            } else {
-                                inputs &= u64::MAX ^ (1 << source_index);
-                            }
-                            let all_inputs_high = inputs.count_ones() == num_inputs;
-                            module.kind = Kind::Conjunction(inputs, num_inputs);
-                            Some(!all_inputs_high)
-                        }
-                    };
-                    if let Some(pulse_to_send) = pulse_to_send {
-                        if pulse_to_send { 
-                            num_high += module.destination_modules.len() 
-                        } else { 
-                            num_low += module.destination_modules.len()
-                        }
-                        v.extend(module.destination_modules.iter().map(|n| (pulse_to_send, *n, module_index) ));
-                    }
-                },
-                None => { },
-            }
-        }
-    }
-    
-    let p1 = num_high * num_low;
-
     let outputs_to_rx = modules.iter().position(|m| m.destination_modules[0] == usize::MAX).unwrap();
     let outputs_to_that_node: usize = modules
         .iter()
         .filter(|module| module.destination_modules.contains(&outputs_to_rx))
         .count();
     let mut deltas: Vec<usize> = vec![];
+    let mut num_low = 0;
+    let mut num_high = 0;
+    let mut button_press = 0;
 
-    let mut button_press = P1_BUTTON_PRESSES;
     loop {
-        let mut v: VecDeque<(bool, usize, usize)> = VecDeque::new();
-        v.push_front((false, names["broadcaster"], 0));
+        let mut v: Vec<(bool, usize, usize)> = Vec::with_capacity(APPROX_SIGNALS_SENT_PER_BUTTON_PRESS);
+        let mut v_index = 0;
+        v.push((false, names["broadcaster"], 0));
         button_press += 1;
+        if button_press <= P1_BUTTON_PRESSES { num_low += 1; }
 
-        while let Some((signal, module_index, source_index)) = v.pop_front() {
+        while v_index < v.len() {
+            let (signal, module_index, source_index) = v[v_index];
+            v_index += 1;
+
             if signal == true && module_index == outputs_to_rx {
                 // Depends on one cycle not being more than 2x other cycles.
                 deltas.push(button_press);
@@ -146,6 +106,13 @@ pub fn solve(input: &str) -> Solution {
                         }
                     };
                     if let Some(pulse_to_send) = pulse_to_send {
+                        if button_press <= P1_BUTTON_PRESSES {
+                            if pulse_to_send { 
+                                num_high += module.destination_modules.len() 
+                            } else { 
+                                num_low += module.destination_modules.len()
+                            }
+                        }
                         v.extend(module.destination_modules.iter().map(|n| (pulse_to_send, *n, module_index) ));
                     }
                 },
@@ -153,12 +120,13 @@ pub fn solve(input: &str) -> Solution {
             }
         }
 
-        if deltas.len() == outputs_to_that_node {
+        if deltas.len() == outputs_to_that_node && button_press > P1_BUTTON_PRESSES {
             break;
         }
     }
 
-    let p2: usize = deltas.into_iter().product();
+    let p1 = num_high * num_low;
+    let p2: usize = deltas.into_iter().take(outputs_to_that_node).product();
 
     Solution::new(p1, p2)
 }
