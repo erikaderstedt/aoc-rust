@@ -9,6 +9,7 @@ enum Garden {
     Rocks,
 }
 
+const P1_STEPS: usize = 64;
 const P2_STEPS: usize = 26501365;
 
 pub fn solve(input: &str) -> Solution {
@@ -16,38 +17,49 @@ pub fn solve(input: &str) -> Solution {
     let original_start_index = original_grid.locations.iter().position(|l| *l == Garden::Start).unwrap();
     let original_x = original_start_index % original_grid.cols;
     let original_y = original_start_index / original_grid.cols;
+    
+    // Repeat grid 5x5. Since the elf reaches at most 1 step out per iteration, 
+    // and we need 2x131 + 65 steps this is enough.
     let sz = original_grid.rows;
     let grid = original_grid.repeated(5, 5);
-
     let start_index = (original_y + 2 * sz) * grid.cols +  original_x + 2 * sz;
 
     let mut p1 = 0;
-
     let mut reached = vec![false; grid.locations.len()];
     reached[start_index] = true;
     let mut counts = vec![];
 
     let mut step = 0;
     loop {
-        if step == 64 { p1 = reached.iter().filter(|r| **r).count() }
+        let num_visited = || reached.iter()
+            .enumerate()
+            .filter(|(index, r)| grid.locations[*index] != Garden::Rocks && **r)
+            .count();
+
+        if step == P1_STEPS { p1 = num_visited() }
         if step % sz == P2_STEPS % sz {            
-            counts.push(reached.iter().filter(|r| **r).count());
+            counts.push(num_visited());
             if counts.len() == 3 {
                 break;
             }
         }
         let mut v = vec![false; reached.len()];
-        for (index,r) in reached.iter().enumerate() {
-            if !r { continue; }
-            if grid.locations[index - grid.cols] != Garden::Rocks { v[index - grid.cols] = true; }
-            if grid.locations[index + grid.cols] != Garden::Rocks { v[index + grid.cols] = true; }
-            if grid.locations[index - 1] != Garden::Rocks { v[index - 1] = true; }
-            if grid.locations[index + 1] != Garden::Rocks { v[index + 1] = true; }
+        for (index,_) in reached.iter()
+            .enumerate()
+            .filter(|(index, r)| **r && grid.locations[*index] != Garden::Rocks) {
+            v[index - grid.cols] = true;
+            v[index + grid.cols] = true;
+            v[index - 1] = true;
+            v[index + 1] = true;
         }
         reached = v;
         step += 1;
     }
-        
+    
+    // counts[n] = A * n^2 / 2 + C * n + D
+    // counts[0] = 0 + 0 + D
+    // counts[1] = A/2 + C + D
+    // counts[2] = A * 2 + 2 * C + D
     let d = counts[0];
     let a = counts[2] - counts[1]*2 + d;
     let c = counts[1] - d - a/2;
