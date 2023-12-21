@@ -119,11 +119,26 @@ impl<T: GridElement> Grid<T> {
     #[allow(dead_code)]
     pub fn load(input: &str) -> Grid<T> {
         let cols = input.as_bytes().iter().position(|c| *c == '\n' as u8).unwrap();
-        // let cols = input.lines().next().unwrap().len();
         let locations: Vec<T> = input.chars().filter_map(|c| T::from_char(&c)).collect();
         let rows = locations.len()/cols;
         assert!(rows * cols == locations.len(), "Grid is not rectangular, perhaps some items won't parse");
         Grid { rows, cols, locations }
+    }
+
+    #[allow(dead_code)]
+    pub fn repeated(&self, across: usize, down: usize) -> Grid<T> {
+        let ncols = self.cols * across;
+        let nrows = self.rows * down;
+        let locations: Vec<T> = (0..nrows)
+            .map(|row| {
+                self.locations.iter().skip(row * self.cols).take(self.cols).cycle().take(ncols)
+            })
+            .flatten()
+            .cycle()
+            .take(ncols*nrows)
+            .cloned()
+            .collect();
+        Grid { rows: ncols, cols: nrows, locations}
     }
 
     // pub fn safe_index(&self, y: i64, x: i64) -> Option<usize> {
