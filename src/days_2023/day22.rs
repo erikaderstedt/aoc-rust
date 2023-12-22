@@ -33,8 +33,8 @@ impl Brick {
         let mut above: HashSet<u16> = HashSet::new();
         let z = self.end.2 as usize;
 
-        for x in self.start.0..=self.end.0 {
-            for y in self.start.1..=self.end.1 {
+        for y in self.start.1..=self.end.1 {
+            for x in self.start.0..=self.end.0 {
                 let v = space[x as usize][y as usize][z+1];
                 if v != 0 {
                     above.insert(v);
@@ -49,8 +49,8 @@ impl Brick {
         let mut below: HashSet<u16> = HashSet::new();
         let z = self.start.2 as usize;
 
-        for x in self.start.0..=self.end.0 {
-            for y in self.start.1..=self.end.1 {
+        for y in self.start.1..=self.end.1 {
+            for x in self.start.0..=self.end.0 {
                 let v = space[x as usize][y as usize][z-1];
                 if v != 0 {
                     below.insert(v);
@@ -62,13 +62,13 @@ impl Brick {
     }
 }
 
-fn drop_bricks(bricks: &mut Vec<Brick>, space: &mut Space) -> usize {
+fn drop_bricks(bricks: &mut Vec<Brick>, space: &mut Space, start_at: usize) -> usize {
 
     let mut total_moved = vec![false; bricks.len()];
-    let mut first_moved: Option<usize> = None;
+    let mut first_moved = start_at;
     loop {
         let mut num_moved = 0;
-        for (index,brick) in bricks.iter_mut().enumerate().skip(first_moved.unwrap_or(0)) {
+        for (index,brick) in bricks.iter_mut().enumerate().skip(first_moved) {
             let z = brick.start.2 as usize;
 
             if let Some(new_z) = 
@@ -78,7 +78,7 @@ fn drop_bricks(bricks: &mut Vec<Brick>, space: &mut Space) -> usize {
                             .all(|x| (brick.start.1..=brick.end.1)
                                 .all(|y| space[x as usize][y as usize][*z] == 0)))
                     .last() {
-                        
+                    
                     brick.configure_space(space, 0);
 
                     brick.end.2 = brick.end.2 - (z - new_z) as u16;
@@ -86,9 +86,7 @@ fn drop_bricks(bricks: &mut Vec<Brick>, space: &mut Space) -> usize {
 
                     brick.configure_space(space, (index as u16) +1);
 
-                    if first_moved.is_none() {
-                        first_moved = Some(index);
-                    }
+                    first_moved = index + 1;
                     total_moved[index] = true;
                     num_moved += 1;
             }
@@ -102,32 +100,39 @@ pub fn solve(input: &str) -> Solution {
     let mut bricks: Vec<Brick> = parsed_from_each_line(input);
     let mut space = vec![vec![vec![0; 300]; 10]; 10];
     
+    bricks.sort_unstable_by_key(|b| b.start.2);
+
+    // The actual number does not matter, just that it is unique amond 
     for (index, brick) in bricks.iter().enumerate() {
         brick.configure_space(&mut space, index as u16 +1);
     }
 
-    bricks.sort_unstable_by_key(|b| b.start.2);
-
-    drop_bricks(&mut bricks, &mut space);
+    drop_bricks(&mut bricks, &mut space, 0);
 
     // Bricks above.. do they have other bricks below?
-    let p1 = bricks.iter()
-        .filter(|brick| {
+    let not_safe: Vec<usize> = bricks.iter()
+        .enumerate()
+        .filter_map(|(index,brick)| {
             let above = brick.above(&space);            
-            above.len() == 0 || above.iter().all(|a| bricks[*a as usize - 1].below(&space).len() > 1)
+            if above.len() == 0 || above.iter().all(|a| bricks[*a as usize - 1].below(&space).len() > 1) {
+                None
+            } else {
+                Some(index)
+            }
         })
-        .count();
+        .collect();
+    let p1 = bricks.len() - not_safe.len();
 
-    let p2: usize = bricks.iter().enumerate()
-        .map(|(index, brick)| -> usize {
+    let p2: usize = not_safe.into_iter()
+        .map(|index| -> usize {
 
             let mut b0 = bricks.clone();
             let mut s2 = space.clone();
 
-            brick.configure_space(&mut s2, 0);
+            b0[index].configure_space(&mut s2, 0);
+            b0[index].start.2 = 1; // Faster than removing if from the list.
 
-            b0.remove(index);
-            drop_bricks(&mut b0, &mut s2)
+            drop_bricks(&mut b0, &mut s2, index)
         })
         .sum();
         
