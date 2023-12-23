@@ -32,7 +32,7 @@ impl Explorer {
             vec![]
         } else if self.x == 1 && self.y == 0 {
             vec![Explorer { x: 1, y: 1, visited: v} ]
-        } else {
+        } else {            
             match &grid.locations[self.y * grid.cols + self.x] {
                 Stuff::Forest => panic!("??"),
                 Stuff::Slope(direction) => {
@@ -87,16 +87,17 @@ struct GraphState {
 
 impl GraphState {
     fn extend_with_successors(&self, check: &mut Vec<GraphState>, graph: &Vec<Node>) {
-        check.extend(graph[self.node_index as usize].paths.iter()
-            .filter_map(|(destination, cost)|
-                if self.visited & (1 << destination) != 0 {
-                    None
-                } else {
-                    Some( GraphState { 
+        check.extend(
+            graph[self.node_index as usize]
+                .paths
+                .iter()
+                .filter(|(destination,_)| self.visited & (1 << destination) == 0)
+                .map(|(destination, cost)|
+                    GraphState { 
                         node_index: *destination,
                         visited: self.visited | (1 << self.node_index),
-                        cost: self.cost + cost})
-                }))
+                        cost: self.cost + cost}
+                ))
     }
 }
 
