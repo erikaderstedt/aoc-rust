@@ -81,22 +81,20 @@ struct Node {
 #[derive(PartialEq, Eq,Clone)]
 struct GraphState {
     node_index: u8,
-    visited: Vec<u8>,
+    visited: u64,
     cost: u16,
 }
 
 impl GraphState {
     fn extend_with_successors(&self, check: &mut Vec<GraphState>, graph: &Vec<Node>) {
         check.extend(graph[self.node_index as usize].paths.iter()
-            .filter_map(|(destination, cost)| 
-                if self.visited.contains(destination) {
+            .filter_map(|(destination, cost)|
+                if self.visited & (1 << destination) != 0 {
                     None
                 } else {
-                    let mut v = self.visited.clone();
-                    v.push(self.node_index);
                     Some( GraphState { 
                         node_index: *destination,
-                        visited: v,
+                        visited: self.visited | (1 << self.node_index),
                         cost: self.cost + cost})
                 }))
     }
@@ -171,7 +169,8 @@ fn find_longest_path(grid: &Grid<Stuff>) -> u16 {
     let end = nodes.iter().position(|n| n.location == goal).unwrap() as u8;
 
     let mut p = 0;
-    let mut check: Vec<GraphState> =vec![GraphState { node_index: start, visited: vec![], cost: 1}];
+    let mut check: Vec<GraphState> =vec![GraphState { node_index: start, visited: 0, cost: 1}];
+
     while let Some(c) = check.pop() {
         if c.node_index == end && c.cost > p {
             p = c.cost;
