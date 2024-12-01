@@ -11,7 +11,8 @@ mod crate_info;
 // mod days_2020;
 // mod days_2021;
 // mod days_2022;
-mod days_2023;
+// mod days_2023;
+mod days_2024;
 mod common;
 mod grid;
 
@@ -39,7 +40,7 @@ fn main() -> Result<(), std::io::Error> {
     .arg(
         Arg::with_name("year")
             .takes_value(true)
-            .help(r#"Year (2015-2022) to run. If omitted, all years are run."#)
+            .help(r#"Year (2015-2024) to run. If omitted, all years are run."#)
     )
     .arg(
         Arg::with_name("day")
@@ -72,7 +73,8 @@ fn main() -> Result<(), std::io::Error> {
             // "2020" => days_2020::get_solver,
             // "2021" => days_2021::get_solver,
             // "2022" => days_2022::get_solver,
-            "2023" => days_2023::get_solver,
+            // "2023" => days_2023::get_solver,
+            "2024" => days_2024::get_solver,
             _ => panic!("Year not implemented!"),
         };
         
