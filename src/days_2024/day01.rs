@@ -1,17 +1,13 @@
 // https://adventofcode.com/2024/day/1
 
+use itertools::Itertools;
 use crate::common::Solution;
 
 pub fn solve(input: &str) -> Solution {
     let (mut a, mut b): (Vec<isize>, Vec<isize>) = input
         .lines()
         .flat_map(|line| -> Option<(isize, isize)> {
-            match (line.split(" ").next(), line.split(" ").last()) {
-                (Some(s1), Some(s2)) => {
-                    Some((s1.parse::<isize>().unwrap(), s2.parse::<isize>().unwrap()))
-                }
-                _ => None,
-            }
+            line.split("   ").map(|s| s.parse::<isize>().unwrap()).collect_tuple()
         })
         .unzip();
 
