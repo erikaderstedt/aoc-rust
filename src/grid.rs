@@ -168,6 +168,23 @@ impl<T: GridElement> Grid<T> {
         self.locations = l;
     }
 
+    pub fn enclosed(&self, element: T) -> Grid<T> {
+        let rows = self.rows + 2;
+        let cols = self.cols + 2;
+        let mut l: Vec<T> = Vec::with_capacity(rows * cols);
+        
+        for _c in 0..cols { l.push(element.clone()) }
+        for r in 1..(rows-1) {
+            l.push(element.clone());
+            for c in 1..(cols-1) {
+                l.push(self.locations[(r-1)*(cols-2) + c-1].clone());
+            }
+            l.push(element.clone());
+        }
+        for _c in 0..cols { l.push(element.clone()) }
+        Grid { rows, cols, locations: l }
+    }
+
     #[allow(dead_code)]
     pub fn find(&self, element: &T) -> Option<Position> {
         self.locations.iter().position(|i| i == element).map(|l| Position { row: l / self.cols, column: l % self.cols })
