@@ -33,23 +33,23 @@ fn concatenate(x: usize, y: usize) -> usize {
 pub fn solve(input: &str) -> Solution {
     let reports: Vec<Report> = parsed_from_each_line(input);
 
-    let p1: usize = reports
-        .iter()
-        .filter(|report| {
+    let (possible, not_possible): (Vec<Report>, Vec<Report>) = reports
+        .into_iter()
+        .partition(|report| {
             Report::possible_results(&report.items, &|a, b| -> Vec<usize> { vec![a + b, a * b] })
                 .contains(&report.result)
-        })
-        .map(|report| report.result)
-        .sum();
+        });
 
-    let p2: usize = reports
+    let p1 = possible.into_iter().map(|r| r.result).sum::<usize>();
+
+    let p2 = p1 + not_possible
         .iter()
         .filter(|report| {
             Report::possible_results(&report.items, &|a, b| -> Vec<usize> { vec![a + b, a * b, concatenate(a, b)] })
                 .contains(&report.result)
         })
         .map(|report| report.result)
-        .sum();
+        .sum::<usize>();
 
     Solution::new(p1, p2)
 }
