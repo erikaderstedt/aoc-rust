@@ -15,17 +15,15 @@ impl Report {
         if items.len() == 1 {
             target == last
         } else {
+            let remainder = &items[0..items.len() - 1];
             (target % last == 0
-                && Self::check::<ALLOW_CONCAT>(&items[0..items.len() - 1], target / last))
+                && Self::check::<ALLOW_CONCAT>(remainder, target / last))
                 || (target > last
-                    && Self::check::<ALLOW_CONCAT>(&items[0..items.len() - 1], target - last))
+                    && Self::check::<ALLOW_CONCAT>(remainder, target - last))
                 || (ALLOW_CONCAT
                     && target > last
                     && match target.to_string().strip_suffix(&last.to_string()) {
-                        Some(reduced) => Self::check::<ALLOW_CONCAT>(
-                            &items[0..items.len() - 1],
-                            reduced.parse::<usize>().unwrap(),
-                        ),
+                        Some(reduced) => Self::check::<ALLOW_CONCAT>(remainder,reduced.parse::<usize>().unwrap()),
                         None => false,
                     })
         }
