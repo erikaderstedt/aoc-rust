@@ -37,6 +37,7 @@ impl Direction {
         }
     }
 
+    #[allow(dead_code)]
     pub fn reverse(&self) -> Direction {
         match self {
             Direction::East => Direction::West,
