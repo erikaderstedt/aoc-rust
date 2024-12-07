@@ -10,46 +10,41 @@ struct Report {
 }
 
 impl Report {
-    fn possible_results<F>(v: &[usize], mapper: &F) -> Vec<usize>
-    where
-        F: Fn(usize, usize) -> Vec<usize>,
-    {
-        if v.len() == 2 {
-            mapper(v[0], v[1])
+    fn check<const ALLOW_CONCAT: bool>(items: &[usize], target: usize) -> bool {
+        let last = items[items.len() - 1];
+        if items.len() == 1 {
+            target == last
         } else {
-            let last = v[v.len() - 1];
-            Self::possible_results(&v[0..(v.len() - 1)], mapper)
-                .into_iter()
-                .flat_map(|p| mapper(p, last))
-                .collect()
+            (target % last == 0
+                && Self::check::<ALLOW_CONCAT>(&items[0..items.len() - 1], target / last))
+                || (target > last
+                    && Self::check::<ALLOW_CONCAT>(&items[0..items.len() - 1], target - last))
+                || (ALLOW_CONCAT
+                    && target > last
+                    && match target.to_string().strip_suffix(&last.to_string()) {
+                        Some(reduced) => Self::check::<ALLOW_CONCAT>(
+                            &items[0..items.len() - 1],
+                            reduced.parse::<usize>().unwrap(),
+                        ),
+                        None => false,
+                    })
         }
     }
-}
-
-fn concatenate(x: usize, y: usize) -> usize {
-    x * 10usize.pow(y.to_string().len() as u32) + y
 }
 
 pub fn solve(input: &str) -> Solution {
     let reports: Vec<Report> = parsed_from_each_line(input);
 
-    let (possible, not_possible): (Vec<Report>, Vec<Report>) = reports
-        .into_iter()
-        .partition(|report| {
-            Report::possible_results(&report.items, &|a, b| -> Vec<usize> { vec![a + b, a * b] })
-                .contains(&report.result)
-        });
-
-    let p1 = possible.into_iter().map(|r| r.result).sum::<usize>();
-
-    let p2 = p1 + not_possible
+    let p1: usize = reports
         .iter()
-        .filter(|report| {
-            Report::possible_results(&report.items, &|a, b| -> Vec<usize> { vec![a + b, a * b, concatenate(a, b)] })
-                .contains(&report.result)
-        })
+        .filter(|report| Report::check::<false>(&report.items, report.result))
         .map(|report| report.result)
-        .sum::<usize>();
+        .sum();
+    let p2: usize = reports
+        .iter()
+        .filter(|report| Report::check::<true>(&report.items, report.result))
+        .map(|report| report.result)
+        .sum();
 
     Solution::new(p1, p2)
 }
