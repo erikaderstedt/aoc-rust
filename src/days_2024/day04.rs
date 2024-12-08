@@ -1,6 +1,6 @@
 // https://adventofcode.com/2024/day/4
 
-use crate::{common::Solution, grid::Grid, grid::GridElement};
+use crate::{common::Solution, grid::Grid};
 
 const X: u8 = 'X' as u8;
 const M: u8 = 'M' as u8;
@@ -89,16 +89,4 @@ pub fn solve(input: &str) -> Solution {
         .count();
 
     Solution::new(p1, p2)
-}
-
-impl GridElement for u8 {
-    fn from_char(c: &char) -> Option<Self> {
-        match c {
-            'A' | 'X' | 'M' | 'S' => Some(*c as u8),
-            _ => None,
-        }
-    }
-    fn to_char(&self) -> char {
-        *self as char
-    }
 }
