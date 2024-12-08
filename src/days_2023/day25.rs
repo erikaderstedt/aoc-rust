@@ -25,14 +25,13 @@ fn decode(u: u32) -> String {
 pub fn solve(input: &str) -> Solution {
     let all_nodes: Vec<u32> = input
         .lines()
-        .map(|line| -> Vec<&str> { line.split(' ').collect() })
+        .map(|line| -> Vec<u32> { line.split(' ').map(|s| encode(s)).collect() })
         .flatten()
-        .map(|s| encode(s))
         .collect::<HashSet<u32>>()
         .into_iter()
         .collect();
 
-    let mut bidirectional_graph: Graph = all_nodes
+    let bidirectional_graph: Graph = all_nodes
         .iter()
         .map(|node| -> (u32, Vec<u32>) {
             let node_s = decode(*node);
@@ -56,70 +55,76 @@ pub fn solve(input: &str) -> Solution {
 
     let mut traversed_edges: HashMap<u64, usize> = HashMap::new();
     let mut rng = thread_rng();
-    for _ in 0..1000 {
-        // Grab two random keys in the bidirectional graph
-        let node1: u32 = *all_nodes.choose(&mut rng).unwrap();
-        let node2: u32 = *all_nodes.choose(&mut rng).unwrap();
-        let p = bfs(
-            &node1,
-            |state: &u32| bidirectional_graph[state].iter().cloned(),
-            |state| *state == node2,
-        )
-        .unwrap();
+    let num_nodes = all_nodes.len();
 
-        // For each edge traversed, increase or set edge in hashmap
-        for node_pair in p.windows(2) {
-            let edge = ((std::cmp::min(node_pair[0], node_pair[1]) as u64) << 32)
-                + (std::cmp::max(node_pair[0], node_pair[1]) as u64);
-            match traversed_edges.get_mut(&edge) {
-                Some(cnt) => *cnt += 1,
-                None => {
-                    traversed_edges.insert(edge, 1);
-                }
+    let p1 = loop {
+        for _ in 0..100 {
+            // Grab two random keys in the bidirectional graph
+            let node1: u32 = *all_nodes.choose(&mut rng).unwrap();
+            let node2: u32 = *all_nodes.choose(&mut rng).unwrap();
+            let p = bfs(
+                &node1,
+                |state: &u32| bidirectional_graph[state].iter().cloned(),
+                |state| *state == node2,
+            )
+            .unwrap();
+    
+            // For each edge traversed, increase or set edge in hashmap
+            for node_pair in p.windows(2) {
+                let edge = ((std::cmp::min(node_pair[0], node_pair[1]) as u64) << 32)
+                    + (std::cmp::max(node_pair[0], node_pair[1]) as u64);
+                *traversed_edges.entry(edge).or_default() += 1;
+                // match traversed_edges.get(&edge) {
+                //     Some(cnt) => traversed_edges.insert(edge, cnt + 1),
+                //     None => traversed_edges.insert(edge, 1),
+                // };
             }
         }
-    }
 
-    // Remove the three most traversed edges.
-    for (n1, n2) in traversed_edges
-        .into_iter()
-        .sorted_unstable_by(|a, b| Ord::cmp(&b.1, &a.1))
-        .take(3)
-        // .inspect(|(h, c)| {
-        //     println!(
-        //         "{} hits on {:?} to {:?}",
-        //         c,
-        //         decode((h >> 32) as u32),
-        //         decode((h & 0xFFFF_FFFF) as u32)
-        //     )
-        // })
-        .map(|(h, _)| ((h >> 32) as u32, (h & 0xFFFF_FFFF) as u32))
-    {
-        bidirectional_graph.get_mut(&n1).unwrap().retain(|d| *d != n2);
-        bidirectional_graph.get_mut(&n2).unwrap().retain(|d| *d != n1);
-    }
+        // Remove the three most traversed edges.
+        // Note that if this does not work there will be zero nodes
+        let mut cut_graph = bidirectional_graph.clone();
+        for (n1, n2) in traversed_edges
+            .iter()
+            .sorted_unstable_by(|a, b| Ord::cmp(&b.1, &a.1))
+            .take(3)
+            // .inspect(|(h, c)| {
+            //     println!(
+            //         "{} hits on {:?} to {:?}",
+            //         c,
+            //         decode((*h >> 32) as u32),
+            //         decode((*h & 0xFFFF_FFFF) as u32)
+            //     )
+            // })
+            .map(|(h, _)| ((h >> 32) as u32, (h & 0xFFFF_FFFF) as u32))
+        {
+            cut_graph.get_mut(&n1).unwrap().retain(|d| *d != n2);
+            cut_graph.get_mut(&n2).unwrap().retain(|d| *d != n1);
+        }
 
-    // Select a random node
-    // Enumerate nodes
-    // Among the nodes, how many can reach one of the nodes on the deleted edge?
-    // This number * (total number of nodes - this number) => answer
-    let target: u32 = *all_nodes.choose(&mut rng).unwrap();
-    let num_nodes = all_nodes.len();
-    let can_reach_target = all_nodes
-        .into_iter()
-        .filter(|n| -> bool {
-            bfs(
-                n,
-                |state: &u32| bidirectional_graph[state].iter().cloned(),
-                |state| *state == target,
-            )
-            .is_some()
-        })
-        // .inspect(|n| println!("{:?} can reach {:?}", decode(*n), decode(target)))
-        .count();
+        // Select a random node
+        // Enumerate nodes
+        // Among the nodes, how many can reach one of the nodes on the deleted edge?
+        // This number * (total number of nodes - this number) => answer
+        let target: u32 = all_nodes[0];
+        let can_reach_target = all_nodes
+            .iter()
+            .filter(|n| -> bool {
+                bfs(
+                    *n,
+                    |state: &u32| cut_graph[state].iter().cloned(),
+                    |state| *state == target,
+                )
+                .is_some()
+            })
+            // .inspect(|n| println!("{:?} can reach {:?}", decode(*n), decode(target)))
+            .count();
 
-    let p1 = can_reach_target * (num_nodes - can_reach_target);
-    let p2 = 0;
+        if can_reach_target != num_nodes {
+            break can_reach_target * (num_nodes - can_reach_target)
+        } 
+        // if not then we cut the wrong ones an need to traverse more random paths
+    };
 
-    Solution::new(p1, p2)
+    Solution::new(p1, 0)
 }
