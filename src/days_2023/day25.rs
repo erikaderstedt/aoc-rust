@@ -17,8 +17,8 @@ fn decode(u: u32) -> String {
     format!(
         "{}{}{}",
         ((u >> 16) as u8) as char,
-        (((u >> 8) & 255) as u8) as char,
-        ((u & 255) as u8) as char
+        (((u >> 8) & 0xFF) as u8) as char,
+        ((u & 0xFF) as u8) as char
     )
 }
 
@@ -95,18 +95,8 @@ pub fn solve(input: &str) -> Solution {
         // })
         .map(|(h, _)| ((h >> 32) as u32, (h & 0xFFFF_FFFF) as u32))
     {
-        {
-            let mut x: Vec<u32> = bidirectional_graph.remove(&n1).unwrap();
-            let p2 = x.iter().position(|d| *d == n2).unwrap() as usize;
-            x.remove(p2);
-            bidirectional_graph.insert(n1, x);
-        }
-        {
-            let mut x: Vec<u32> = bidirectional_graph.remove(&n2).unwrap();
-            let p1 = x.iter().position(|d| *d == n1).unwrap() as usize;
-            x.remove(p1);
-            bidirectional_graph.insert(n2, x);
-        }
+        bidirectional_graph.get_mut(&n1).unwrap().retain(|d| *d != n2);
+        bidirectional_graph.get_mut(&n2).unwrap().retain(|d| *d != n1);
     }
 
     // Select a random node
