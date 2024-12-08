@@ -11,7 +11,7 @@ mod crate_info;
 // mod days_2020;
 // mod days_2021;
 // mod days_2022;
-// mod days_2023;
+mod days_2023;
 mod days_2024;
 mod common;
 mod grid;
@@ -24,7 +24,7 @@ use crate::crate_info::crate_description;
 use crate::crate_info::crate_name;
 use crate::crate_info::crate_version;
 
-#[macro_use]
+// #[macro_use]
 extern crate itertools;
 
 // #[macro_use]
@@ -73,7 +73,7 @@ fn main() -> Result<(), std::io::Error> {
             // "2020" => days_2020::get_solver,
             // "2021" => days_2021::get_solver,
             // "2022" => days_2022::get_solver,
-            // "2023" => days_2023::get_solver,
+            "2023" => days_2023::get_solver,
             "2024" => days_2024::get_solver,
             _ => panic!("Year not implemented!"),
         };
