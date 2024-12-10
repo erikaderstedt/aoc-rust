@@ -8,58 +8,41 @@ pub fn solve(input: &str) -> Solution {
     let topographic_map: Grid<u8> = Grid::load(input).enclosed('X' as u8);
 
     let p1 = topographic_map
-        .locations
-        .iter()
-        .enumerate()
-        .filter(|(_, i)| **i == 0)
-        .map(|(index, _)| {
-            let zero_location = Position {
-                row: index / topographic_map.cols,
-                column: index % topographic_map.cols,
-            };
-            let j = bfs_reach((zero_location.clone(), 0u8), |s: &(Position, u8)| {
-                vec![
-                    (s.0.above(), s.1 + 1),
-                    (s.0.below(), s.1 + 1),
-                    (s.0.left(), s.1 + 1),
-                    (s.0.right(), s.1 + 1),
-                ]
-                .into_iter()
-                .filter(|(p1, n)| topographic_map.get(p1).unwrap() == *n)
+        .positions()
+        .filter(|p| topographic_map.get(&p).unwrap() == 0)
+        .map(|zero_location| {
+            bfs_reach(zero_location, |s: &Position| {
+                topographic_map
+                    .neighbor_positions_satisfying_condition(&s, |this_height, next_height| {
+                        *next_height == this_height + 1
+                    })
+                    .into_iter()
             })
-            .filter(|p| p.1 == 9u8)
-            // .inspect(|(p, n)| println!("From {:?} we reach {:?} (a {})", zero_location, p, n))
-            .count();
-            j
+            .filter(|p| topographic_map.get(p).unwrap() == 9)
+            .count()
         })
         .sum::<usize>();
 
     let p2 = topographic_map
-        .locations
-        .iter()
-        .enumerate()
-        .filter(|(_, i)| **i == 0)
-        .map(|(index, _)| {
-            let zero_location = Position {
-                row: index / topographic_map.cols,
-                column: index % topographic_map.cols,
-            };
-            let j = bfs_reach(
-                (zero_location.clone(), 0u8, vec![]),
-                |s: &(Position, u8, Vec<Position>)| {
-                    vec![
-                        (s.0.above(), s.1 + 1, { let mut v: Vec<Position> = s.2.iter().cloned().collect(); v.push(s.0.clone()); v } ),
-                        (s.0.below(), s.1 + 1, { let mut v: Vec<Position> = s.2.iter().cloned().collect(); v.push(s.0.clone()); v } ),
-                        (s.0.left(), s.1 + 1, { let mut v: Vec<Position> = s.2.iter().cloned().collect(); v.push(s.0.clone()); v } ),
-                        (s.0.right(), s.1 + 1, { let mut v: Vec<Position> = s.2.iter().cloned().collect(); v.push(s.0.clone()); v} )
-                    ]
-                    .into_iter()
-                    .filter(|(p1, n, _)| topographic_map.get(p1).unwrap() == *n)
+        .positions()
+        .filter(|p| topographic_map.get(&p).unwrap() == 0)
+        .map(|zero_location| {
+            bfs_reach(
+                (zero_location, vec![]),
+                |s: &(Position, Vec<Position>)| {
+                    let v: Vec<(Position, Vec<Position>)> = topographic_map
+                        .neighbor_positions_satisfying_condition(
+                            &s.0,
+                            |this_height, next_height| *next_height == this_height + 1,
+                        )
+                        .into_iter()
+                        .map(|p| (p, s.1.iter().chain([&s.0]).cloned().collect()))
+                        .collect();
+                    v.into_iter()
                 },
             )
-            .filter(|p| p.1 == 9u8)
-            .count();
-            j
+            .filter(|p| topographic_map.get(&p.0).unwrap() == 9)
+            .count()
         })
         .sum::<usize>();
 
