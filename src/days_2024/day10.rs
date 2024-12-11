@@ -5,7 +5,7 @@ use crate::grid::{Grid, Position};
 use pathfinding::prelude::bfs_reach;
 
 pub fn solve(input: &str) -> Solution {
-    let topographic_map: Grid<u8> = Grid::load(input).enclosed('X' as u8);
+    let topographic_map: Grid<u8> = Grid::load(input);
 
     let p1 = topographic_map
         .positions()
