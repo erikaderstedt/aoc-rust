@@ -62,7 +62,7 @@ impl GridElement for u8 {
     fn from_char(c: &char) -> Option<Self> { 
         match c {
             '1'..='9' => Some((*c as u8) - ('0' as u8)),
-            'A' | 'X' | 'M' | 'S' => Some(*c as u8),
+            'A'..='Z' => Some(*c as u8),
             '0' => Some(0),
             _ => None,
         }

@@ -5,30 +5,22 @@ use std::collections::HashMap;
 use crate::common::Solution;
 
 fn blink(stones: HashMap<u64, usize>) -> HashMap<u64, usize> {
-    let mut n1: HashMap<u64, usize> = HashMap::new();
-
-    for (x, cnt) in stones.into_iter() {
-        if x == 0 {
-            *n1.entry(1).or_default() += cnt;
-            continue;
-        }
-
-        let s = x.to_string();
-        let l = x.to_string().len();
-
-        if l % 2 == 0 {
-            let (a1, a2) = (
-                s[..(l >> 1)].parse::<u64>().unwrap(),
-                s[(l >> 1)..].parse::<u64>().unwrap(),
-            );
-            *n1.entry(a1).or_default() += cnt;
-            *n1.entry(a2).or_default() += cnt;
-        } else {
-            let a1 = x * 2024;
-            *n1.entry(a1).or_default() += cnt;
-        }
-    }
-    n1
+    stones
+        .into_iter()
+        .fold(HashMap::new(), |mut new_stones, (x, cnt)| {
+            if x == 0 {
+                *new_stones.entry(1).or_insert(0) += cnt;
+            } else {
+                let num_digits = x.ilog10() + 1;
+                if num_digits % 2 == 0 {
+                    *new_stones.entry(x % 10u64.pow(num_digits >> 1)).or_insert(0) += cnt;
+                    *new_stones.entry(x / 10u64.pow(num_digits >> 1)).or_insert(0) += cnt;
+                } else {
+                    *new_stones.entry(x * 2024).or_insert(0) += cnt;
+                }
+            }
+            new_stones
+        })
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -40,7 +32,6 @@ pub fn solve(input: &str) -> Solution {
     for _ in 0..25 {
         n = blink(n);
     }
-
     let p1 = n.values().sum::<usize>();
 
     for _ in 25..75 {
