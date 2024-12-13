@@ -14,12 +14,9 @@ struct Machine {
 
 impl Machine {
     fn cost_to_win(self: &Machine, offset: isize) -> isize {
-        let ax = self.button_a.0;
-        let ay = self.button_a.1;
-        let bx = self.button_b.0;
-        let by = self.button_b.1;
-        let zx = self.prize.0 + offset;
-        let zy = self.prize.1 + offset;
+        let (ax, ay) = self.button_a;
+        let (bx, by) = self.button_b;
+        let (zx, zy) = (self.prize.0 + offset, self.prize.1 + offset);
 
         let pb = (zx*ay - zy*ax)/(bx*ay - ax*by);
         let pa = (zx - pb * bx)/ax;
@@ -28,7 +25,6 @@ impl Machine {
 }
 
 pub fn solve(input: &str) -> Solution {
- 
     let machines: Vec<Machine> = input.split("\n\n").filter_map(|s| s.parse::<Machine>().ok()).collect();
 
     let p1: isize = machines.iter().map(|machine| machine.cost_to_win(0)).sum();
