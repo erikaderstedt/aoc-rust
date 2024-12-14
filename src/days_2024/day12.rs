@@ -43,7 +43,8 @@ pub fn solve(input: &str) -> Solution {
 
         let mut visited: Vec<Position> = Vec::new();
         let (area, perimeter) = explore_region(&garden, &c, &start, &mut visited);
-        // Count number of corners in visited
+
+        // Count number of corners in visited == number of distinct sides
         let mut corners = 0;
         for v in visited.iter() {
             // Outside corners
