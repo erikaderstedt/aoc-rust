@@ -201,6 +201,11 @@ impl<T: GridElement> Grid<T> {
     }
 
     #[allow(dead_code)]
+    pub fn positions_along_direction(&self, position: &Position, direction: &Direction) -> DirectionIterator {
+        DirectionIterator { row: position.row, col: position.column, max_col: self.cols, max_row: self.rows, direction: direction.clone() }
+    }
+
+    #[allow(dead_code)]
     pub fn display(&self) {
         for row in 0..self.rows {
             let s: String = (0..self.cols).map(|column| -> char { 
@@ -241,6 +246,7 @@ impl<T: GridElement> Grid<T> {
     //     n
     // }
 
+    #[allow(dead_code)]
     pub fn get(&self, p: &Position) -> Option<T> {
         let i = p.row * self.cols + p.column;
         if p.row < self.rows && p.column < self.cols && i < self.locations.len() {
@@ -248,6 +254,12 @@ impl<T: GridElement> Grid<T> {
         } else {
             None
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn set(&mut self, p: &Position, element: T) {
+        let i = p.row * self.cols + p.column;
+        self.locations[i] = element;
     }
 
 }
@@ -292,6 +304,51 @@ impl Iterator for GridIterator {
     }
 }
 
+pub struct DirectionIterator {
+    row: usize,
+    col: usize,
+    max_col: usize,
+    max_row: usize,
+    direction: Direction
+}
+
+impl Iterator for DirectionIterator {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Position> {
+        match self.direction {
+            Direction::South => { 
+                if self.row + 1 < self.max_row {
+                    self.row = self.row + 1;
+                } else {
+                    return None
+                }
+            },
+            Direction::East => {
+                if self.col + 1 < self.max_col {
+                    self.col = self.col + 1;
+                } else {
+                    return None
+                }
+            },
+            Direction::North => {
+                if self.row > 0 {
+                    self.row = self.row - 1;
+                } else {
+                    return None
+                }
+            },
+            Direction::West => {
+                if self.col > 0 {
+                    self.col = self.col - 1;
+                } else {
+                    return None
+                }
+            },
+        };
+        Some( Position { row: self.row, column: self.col })
+    }
+}
 pub struct InwardGridIterator {
     direction: Direction,
     row: usize,
