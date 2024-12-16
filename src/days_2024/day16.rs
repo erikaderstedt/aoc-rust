@@ -12,53 +12,27 @@ enum Maze {
     Start,
     End,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct Reindeer {
-    position: Position,
-    direction: Direction,
-}
 
 pub fn solve(input: &str) -> Solution {
     let grid: Grid<Maze> = Grid::load(input);
 
-    let start = Reindeer {
-        position: grid.find(&Maze::Start).unwrap(),
-        direction: Direction::East,
-    };
+    let start: (Position, Direction) = (grid.find(&Maze::Start).unwrap(), Direction::East);
     let end = grid.find(&Maze::End).unwrap();
 
     let result = astar_bag_collect(
         &start,
-        |elf| {
-            let mut suc: Vec<(Reindeer, usize)> = Vec::new();
-            let move_destination = elf.position.along(&elf.direction);
+        |(p, d)| {
+            let mut suc: Vec<((Position, Direction), usize)> = Vec::new();
+            let move_destination = p.along(&d);
             if grid.get(&move_destination).unwrap() != Maze::Wall {
-                suc.push((
-                    Reindeer {
-                        position: move_destination,
-                        direction: elf.direction.clone(),
-                    },
-                    1,
-                ));
+                suc.push(((move_destination, d.clone()),1));
             }
-            suc.push((
-                Reindeer {
-                    position: elf.position.clone(),
-                    direction: elf.direction.clockwise(),
-                },
-                1000,
-            ));
-            suc.push((
-                Reindeer {
-                    position: elf.position.clone(),
-                    direction: elf.direction.counter_clockwise(),
-                },
-                1000,
-            ));
+            suc.push(((p.clone(), d.clockwise()), 1000));
+            suc.push(((p.clone(), d.counter_clockwise()), 1000));
             suc.into_iter()
         },
-        |elf| end.column.abs_diff(elf.position.column) + end.row.abs_diff(elf.position.row) - 1,
-        |elf| grid.get(&elf.position).unwrap() == Maze::End,
+        |(p,_)| end.column.abs_diff(p.column) + end.row.abs_diff(p.row) - 1,
+        |(p,_)| grid.get(&p).unwrap() == Maze::End,
     )
     .unwrap();
 
@@ -68,7 +42,7 @@ pub fn solve(input: &str) -> Solution {
         .iter()
         .map(|v| v.iter())
         .flatten()
-        .map(|e| e.position.clone())
+        .map(|e| e.0.clone())
         .collect::<HashSet<Position>>()
         .len();
 
