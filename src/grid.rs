@@ -113,6 +113,10 @@ impl Position {
     pub fn nearest_neighbors(&self) -> NearestNeighborIterator {
         NearestNeighborIterator { center_row: self.row, center_col: self.column, index: 0 }
     }
+
+    pub fn manhattan_distance(&self, other: &Position) -> usize {
+        other.row.abs_diff(self.row) + other.column.abs_diff(self.column)
+    }
 }
 
 impl<T: GridElement> Grid<T> {
