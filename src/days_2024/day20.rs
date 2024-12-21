@@ -1,9 +1,12 @@
 // https://adventofcode.com/2024/day/20
 
-use pathfinding::prelude::bfs;
-use crate::{common::Solution, grid::{Grid, GridElement, Position}};
+use crate::{
+    common::Solution,
+    grid::{Grid, GridElement, Position},
+};
+use pathfinding::prelude::dfs;
 
-#[derive(Debug, PartialEq,Eq,Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum MapElement {
     Empty,
     Wall,
@@ -32,7 +35,12 @@ pub fn solve(input: &str) -> Solution {
 
     // No forks - pathfinding not needed so this can probably be reimplemented with
     // a simpler algoritm and removed.
-    let original = bfs(&start, |p| map.neighbor_positions_satisfying_condition(p, |_, m| *m != MapElement::Wall), |p| *p == end).unwrap();
+    let original: Vec<Position> = dfs(
+        start,
+        |p| map.neighbor_positions_satisfying_condition(p, |_, m| *m != MapElement::Wall),
+        |p| *p == end,
+    )
+    .unwrap();
 
     let p1 = num_fast_enough_cheats::<2>(&original);
     let p2 = num_fast_enough_cheats::<20>(&original);
