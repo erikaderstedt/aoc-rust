@@ -2,8 +2,6 @@
 
 use std::str::from_utf8;
 
-use pathfinding::prelude::bfs;
-
 use crate::common::Solution;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -21,7 +19,7 @@ enum Numeric {
     A,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash,Copy)]
 enum Directional {
     Left,
     Right,
@@ -30,206 +28,141 @@ enum Directional {
     A,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct State {
-    keyboard1: Numeric,         // "A" in keyboard2 puts state of keyboard 1 in typed
-    keyboard2: Directional,     // radiated. Changes state of keyboard 1
-    keyboard3: Directional,     // -40. Changes state of keyboard 2
+impl Directional {
+    fn from_str(s: &str) -> Vec<Directional> {
+        s.bytes().map(|x| match x {
+            b'<' => Directional::Left,
+            b'>' => Directional::Right,
+            b'^' => Directional::Up,
+            b'v' => Directional::Down,
+            b'A' => Directional::A,
+            _ => panic!("unknown directional")
+        }).collect()
+    }
 }
 
-impl State {
-    fn start() -> State {
-        State {
-            keyboard1: Numeric::A,
-            keyboard2: Directional::A,
-            keyboard3: Directional::A,
+impl std::fmt::Display for Directional {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Directional::A => "A",
+            Directional::Down => "v",
+            Directional::Left => "<",
+            Directional::Right => ">",
+            Directional::Up => "^",
+        })
+    }
+}
+
+fn expand(mut d: Vec<Directional>, depth: usize) -> Vec<Directional> {
+    d.insert(0, Directional::A);
+    let replacement: Vec<Directional> = d.windows(2).map(|pair| {
+        // How to (optimally) get from the first to the second, and append an A
+        // The missing states are not required to move horizontally or vertically on the numeric
+        // keypad.
+        match (pair[0], pair[1]) {
+            (Directional::Up, Directional::A) => vec![Directional::Right, Directional::A],
+            (Directional::Up, Directional::Right) => vec![Directional::Down, Directional::Right, Directional::A],
+            (Directional::Up, Directional::Up) => vec![Directional::A],
+            (Directional::Left, Directional::A) => vec![Directional::Right, Directional::Right, Directional::Up, Directional::A],
+            (Directional::Left, Directional::Down) => vec![Directional::Right, Directional::A],
+            (Directional::Left, Directional::Left) => vec![Directional::A],
+            (Directional::Left, Directional::Up) => vec![Directional::Right, Directional::Up, Directional::A],
+            (Directional::Right, Directional::A) => vec![Directional::Up, Directional::A],
+            (Directional::Right, Directional::Up) => vec![Directional::Left, Directional::Up, Directional::A],
+            (Directional::Right, Directional::Right) => vec![Directional::A],
+            (Directional::Down, Directional::A) => vec![Directional::Up, Directional::Right, Directional::A],
+            (Directional::Down, Directional::Left) => vec![Directional::Left, Directional::A],
+            (Directional::Down, Directional::Right) => vec![Directional::Right, Directional::A],
+            (Directional::Down, Directional::Down) => vec![Directional::A],
+            (Directional::A, Directional::Up) => vec![Directional::Left, Directional::A],
+            (Directional::A, Directional::Left) => vec![Directional::Down, Directional::Left, Directional::Left, Directional::A],
+            (Directional::A, Directional::Down) => vec![Directional::Left, Directional::Down, Directional::A],
+            (Directional::A, Directional::Right) => vec![Directional::Down, Directional::A],
+            (Directional::A, Directional::A) => vec![Directional::A],
+            (a,b) => panic!("This state pair should not be needed: {} -> {}", a, b),
         }
-    }
+    }).flatten().collect();
 
-    fn new_position_on_keyboard1(&self, button: &Directional) -> Option<Numeric> {
-        match self.keyboard1 {
-            Numeric::A => match button {
-                Directional::Left => Some(Numeric::Zero),
-                Directional::Right | Directional::Down => None,
-                Directional::Up => Some(Numeric::Three),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Zero => match button {
-                Directional::Right => Some(Numeric::A),
-                Directional::Left | Directional::Down => None,
-                Directional::Up => Some(Numeric::Two),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::One => match button {
-                Directional::Right => Some(Numeric::Two),
-                Directional::Left | Directional::Down => None,
-                Directional::Up => Some(Numeric::Four),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Two => match button {
-                Directional::Right => Some(Numeric::Three),
-                Directional::Up => Some(Numeric::Five),
-                Directional::Left => Some(Numeric::One),
-                Directional::Down => Some(Numeric::Zero),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Three => match button {
-                Directional::Right => None,
-                Directional::Up => Some(Numeric::Six),
-                Directional::Left => Some(Numeric::Two),
-                Directional::Down => Some(Numeric::A),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Four => match button {
-                Directional::Right => Some(Numeric::Five),
-                Directional::Up => Some(Numeric::Seven),
-                Directional::Left => None,
-                Directional::Down => Some(Numeric::One),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Five => match button {
-                Directional::Right => Some(Numeric::Six),
-                Directional::Up => Some(Numeric::Eight),
-                Directional::Left => Some(Numeric::Four),
-                Directional::Down => Some(Numeric::Two),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Six => match button {
-                Directional::Right => None,
-                Directional::Up => Some(Numeric::Nine),
-                Directional::Left => Some(Numeric::Five),
-                Directional::Down => Some(Numeric::Three),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Seven => match button {
-                Directional::Right => Some(Numeric::Eight),
-                Directional::Up => None,
-                Directional::Left => None,
-                Directional::Down => Some(Numeric::Four),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Eight => match button {
-                Directional::Right => Some(Numeric::Nine),
-                Directional::Up => None,
-                Directional::Left => Some(Numeric::Seven),
-                Directional::Down => Some(Numeric::Five),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-            Numeric::Nine => match button {
-                Directional::Right => None,
-                Directional::Up => None,
-                Directional::Left => Some(Numeric::Eight),
-                Directional::Down => Some(Numeric::Six),
-                Directional::A => Some(self.keyboard1.clone()),
-            },
-        }
+    if depth > 0 {
+        expand(replacement, depth - 1)
+    } else {
+        replacement
     }
+}
 
-    fn new_position_on_keyboard2(&self, button: &Directional) -> Option<Directional> {
-        self.new_position_on_directional_keyboard(&self.keyboard2, button)
-    }
 
-    fn new_position_on_keyboard3(&self, button: &Directional) -> Option<Directional> {
-        self.new_position_on_directional_keyboard(&self.keyboard3, button)
-    }
+fn complexity_for_entering_keycode<const N: usize>(keycode: &str) -> usize {
+    let complexity = from_utf8(&keycode.as_bytes()[0..3])
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
+    let states: Vec<Numeric> = vec![Numeric::A].into_iter().chain(Numeric::parse_string(&keycode).into_iter()).collect();
+    let length = states.windows(2).map(|v| -> usize {
+        let (from_x,from_y) = v[0].coordinate();
+        let (to_x, to_y) = v[1].coordinate();
 
-    fn new_position_on_directional_keyboard(
-        &self,
-        current_position: &Directional,
-        button: &Directional,
-    ) -> Option<Directional> {
-        match current_position {
-            Directional::Left => match button {
-                Directional::Left | Directional::Down | Directional::Up => None,
-                Directional::Right => Some(Directional::Down),
-                Directional::A => Some(current_position.clone()),
-            },
-            Directional::Right => match button {
-                Directional::Left => Some(Directional::Down),
-                Directional::Up => Some(Directional::A),
-                Directional::Down | Directional::Right => None,
-                Directional::A => Some(current_position.clone()),
-            },
-            Directional::Down => match button {
-                Directional::Left => Some(Directional::Left),
-                Directional::Right => Some(Directional::Right),
-                Directional::Up => Some(Directional::Up),
-                Directional::Down => None,
-                Directional::A => Some(current_position.clone()),
-            },
-            Directional::Up => match button {
-                Directional::Left | Directional::Up => None,
-                Directional::Right => Some(Directional::A),
-                Directional::Down => Some(Directional::Down),
-                Directional::A => Some(current_position.clone()),
-            },
-            Directional::A => match button {
-                Directional::Left => Some(Directional::Up),
-                Directional::Down => Some(Directional::Right),
-                Directional::Up | Directional::Right => None,
-                Directional::A => Some(current_position.clone()),
-            },
-        }
-    }
+        let total = match (to_x-from_x, from_y - to_y) {
+            (0,1) => Directional::from_str("<A>A"),
+            (0,2) => Directional::from_str("<AA>A"),
+            (0,3) => Directional::from_str("<AAA>A"),
+            (0,-1) => Directional::from_str("<vA^>A"),
+            (0,-2) => Directional::from_str("<vAA^>A"),
+            (0,-3) => Directional::from_str("<vAAA^>A"),
+            (-2,0) => Directional::from_str("v<<AA>>^A"),
+            (-1,0) => Directional::from_str("v<<A>>^A"),
+            (0,0) => vec![],
+            (1,0) => Directional::from_str("vA^A"),
+            (2,0) => Directional::from_str("vAA^A"),
 
-    fn apply(&self, button: &Directional) -> Option<State> {
-        if *button == Directional::A {
-            if self.keyboard3 == Directional::A {
-                if self.keyboard2 == Directional::A {
-                    Some(State {
-                        keyboard1: self.keyboard1.clone(),
-                        keyboard2: self.keyboard2.clone(),
-                        keyboard3: self.keyboard3.clone(),
-                    })
-                    // panic!("This is handled elsewhere");
-                } else {
-                    if let Some(keyboard1) = self.new_position_on_keyboard1(&self.keyboard2) {
-                        Some(State {
-                            keyboard1,
-                            keyboard2: self.keyboard2.clone(),
-                            keyboard3: self.keyboard3.clone(),
-                            // operator: self
-                            //     .operator
-                            //     .iter()
-                            //     .cloned()
-                            //     .chain(vec![button.clone()])
-                            //     .collect(),
-                        })
-                    } else {
-                        // The keyboard2 press resulted in an invalid keyboard 1 position
-                        None
-                    }
-                }
-            } else {
-                if let Some(keyboard2) = self.new_position_on_keyboard2(&self.keyboard3) {
-                    Some(State {
-                        keyboard1: self.keyboard1.clone(),
-                        keyboard2,
-                        keyboard3: self.keyboard3.clone(),
-                        // operator: self
-                        //     .operator
-                        //     .iter()
-                        //     .cloned()
-                        //     .chain(vec![button.clone()])
-                        //     .collect(),
-                    })
-                } else {
-                    None
-                }
-            }
-        } else {
-            if let Some(keyboard3) = self.new_position_on_keyboard3(button) {
-                Some(State {
-                    keyboard1: self.keyboard1.clone(),
-                    keyboard2: self.keyboard2.clone(),
-                    keyboard3,
-                })
-            } else {
+            (-2,3) => Directional::from_str("<AAAv<AA>>^A"), // must go up first
+            (-2,2) if v[0] == Numeric::A => Directional::from_str("<AAv<AA>>^A"), // must go up first
+            (-2,1) if v[0] == Numeric::A => Directional::from_str("<Av<AA>>^A"), // must go up first
+            (-2,2) => Directional::from_str("v<<AA>^AA>A"),
+            (-2,1) => Directional::from_str("v<<AA>^A>A"),
+            
+            (-2,-1) => Directional::from_str("<vA<AA>>^A"), // could be others
+            (-2,-2) => Directional::from_str("<vAA<AA>>^A"), // could be others
+            (-2,-3) => panic!("not a valid move"),
+            
+            (-1,3) if v[0] == Numeric::Zero => Directional::from_str("<AAAv<A>>^A"),
+            (-1,2) if v[0] == Numeric::Zero => Directional::from_str("<AAv<A>>^A"),
+            (-1,1) if v[0] == Numeric::Zero => Directional::from_str("<Av<A>>^A"),
+            (-1,3) => Directional::from_str("v<<A>^AAA>A"),
+            (-1,2) => Directional::from_str("v<<A>^AA>A"),
+            (-1,1) => Directional::from_str("v<<A>^A>A"),
+            (-1,-1) => Directional::from_str("<vA<A>>^A"),
+            (-1,-2) => Directional::from_str("<vAA<A>>^A"),
+            (-1,-3) => Directional::from_str("<vAAA<A>>^A"),
 
-                None
-            }
-        }
-    }
+            (1,3) => Directional::from_str("vA<^AAA>A"),
+            (1,2) => Directional::from_str("vA<^AA>A"), 
+            (1,1) => Directional::from_str("vA<^A>A"),
+            (1,-1) if v[1] != Numeric::Zero => Directional::from_str("<vA>A^A"),
+            (1,-2) if v[1] != Numeric::Zero => Directional::from_str("<vAA>A^A"),
+            (1,-3) if v[1] != Numeric::Zero => Directional::from_str("<vAAA>A^A"),
+            (1,-1) => Directional::from_str("vA<A^>A"),
+            (1,-2) => Directional::from_str("vA<AA^>A"),
+            (1,-3) => Directional::from_str("vA<AAA^>A"),
+
+            (2,3) => Directional::from_str("<AAAv>AA^A"), // could be others
+            (2,2) => Directional::from_str("<AAv>AA^A"), // could be others
+            (2,1) => Directional::from_str("<Av>AA^A"), // could be others
+            (2,-1) if v[1] != Numeric::A => Directional::from_str("<vA>AA^A"),
+            (2,-2) if v[1] != Numeric::A => Directional::from_str("<vAA>AA^A"),
+            (2,-3) if v[1] != Numeric::A => Directional::from_str("<vAAA>AA^A"),
+            (2,-1) => Directional::from_str("vAA<A^>A"),
+            (2,-2) => Directional::from_str("vAA<AA^>A"),
+            (2,-3) => Directional::from_str("vAA<AAA^>A"),
+
+            _ => panic!("unsupported move"),
+        };
+
+        let r = expand(total, N-2);
+
+        r.len()
+    }).sum::<usize>();
+
+    complexity * length
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -237,46 +170,14 @@ pub fn solve(input: &str) -> Solution {
 
     let p1 = keycodes
         .iter()
-        .map(|keycode| -> usize {
-            let complexity = from_utf8(&keycode.as_bytes()[0..3])
-                .unwrap()
-                .parse::<usize>()
-                .unwrap();
-            let first_robot_types = Numeric::parse_string(&keycode);
-
-            let mut start = State::start();
-            // The end state is
-            let mut length = 0;
-            for what_to_type in first_robot_types.iter() {
-                let path = bfs(
-                    &start,
-                    |state| {
-                            [
-                                Directional::Left,
-                                Directional::A,
-                                Directional::Right,
-                                Directional::Down,
-                                Directional::Up,
-                            ]
-                            .iter()
-                            .filter_map(|d| state.apply(d))
-                            .collect::<Vec<State>>()
-                    },
-                    |state| state.keyboard1 == *what_to_type && state.keyboard2 == Directional::A && state.keyboard3 == Directional::A,
-                )
-                .unwrap();
-
-                length = length + path.len();
-                start = State {
-                    keyboard1: what_to_type.clone(),
-                    keyboard2: Directional::A,
-                    keyboard3: Directional::A,
-                }
-            }
-            complexity * length
-        })
+        .map(|keycode| -> usize {complexity_for_entering_keycode::<2>(keycode) })
         .sum::<usize>();
-    let p2 = 0;
+
+    let p2 = keycodes
+        .iter()
+        .map(|keycode| -> usize {complexity_for_entering_keycode::<25>(keycode) })
+        .sum::<usize>();
+    // p2 runtime 9000 seconds!
 
     Solution::new(p1, p2)
 }
@@ -303,5 +204,21 @@ impl Numeric {
                 }
             })
             .collect()
+    }
+
+    fn coordinate(&self) -> (isize, isize) {
+        match self {
+            Self::Seven => (0,0),
+            Self::Eight => (1,0),
+            Self::Nine => (2,0),
+            Self::Four => (0,1),
+            Self::Five => (1,1),
+            Self::Six => (2,1),
+            Self::One => (0,2),
+            Self::Two => (1,2),
+            Self::Three => (2,2),
+            Self::Zero => (1,3),
+            Self::A => (2,3),
+        }
     }
 }

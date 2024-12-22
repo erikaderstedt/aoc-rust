@@ -463,3 +463,22 @@ impl Iterator for NearestNeighborIterator {
         n
     }
 }
+
+
+impl GridElement for u8 {
+    fn from_char(c: &char) -> Option<Self> { 
+        match c {
+            '1'..='9' => Some((*c as u8) - ('0' as u8)),
+            'A'..='Z' => Some(*c as u8),
+            '0' => Some(0),
+            _ => None,
+        }
+    }
+    fn to_char(&self) -> char {
+        match self {
+            1 => '1',
+            0 => '.',
+            _ => '?',
+        }
+    }
+}
