@@ -1,10 +1,7 @@
 // https://adventofcode.com/2024/day/23
 
 use std::collections::HashSet;
-
 use itertools::Itertools;
-use pathfinding::prelude::bfs_reach;
-
 use crate::common::Solution;
 
 type Computer = u16;
@@ -23,37 +20,54 @@ fn repr(c: &Computer) -> String {
     std::str::from_utf8(&v).unwrap().to_string()
 }
 
-fn find_connected(computer: &Computer, connections: &Vec<(Computer,Computer)>) -> Vec<Computer> {
-
-    bfs_reach(computer.clone(), |c| {
-        let destinations: Vec<Computer> = connections
-            .iter()
-            .filter(|(c1,c2)| c1 == c || c2 == c)
-            .map(|(c1,c2)| if c1 == c { *c2 } else { *c1 })
-            .collect();
-
-        // println!("computer {} has these destinations: {:?}", repr(c), destinations.iter().map(|c| repr(c)).join(","));
-            destinations
+fn expand_set(set: HashSet<Computer>, connections: &Vec<(Computer,Computer)>) -> HashSet<Computer> {
+    let mut nset = set
+    .iter()
+    .map(|c| -> HashSet<Computer> {
+        connections
+        .iter()
+        .filter_map(|(c3,c4)| {
+            // c3 in set, c4 not in set
+            if c3 == c && !set.contains(c4) {
+                Some(c4.clone())
+            } else if c4 == c && !set.contains(c3) {
+                Some(c3.clone())
+            } else {
+                None
+            }
+        })
+        .collect()
     })
-    .collect()
+    .reduce(|acc, s| acc.intersection(&s).cloned().collect())
+    .unwrap();
 
-    // let f: Vec<Computer> = found.iter().chain(vec![computer]).cloned().collect();
-    // connections
-    // .iter()
-    // .filter(|(c1,c2)| (c1 == computer && !f.contains(c2)) || (c2 == computer && !f.contains(c1)))
-    // .map(|(c1,c2)| -> Vec<Computer> {
-    //     if c1 == computer && !f.contains(c2) {
-    //         println!("Connection {} {}, found {:?} following {}", repr(c1), repr(c2), f.iter().map(|c| repr(c)).join(","), repr(c2));
-    //         find_connected(c2, connections, &f)
-    //     } else if c2 == computer && !f.contains(c1) {
-    //         println!("Connection {} {}, found {:?} following {}", repr(c1), repr(c2), f.iter().map(|c| repr(c)).join(","), repr(c1));
-    //         find_connected(c1, connections, &f)
-    //     } else {
-    //         panic!("?")
-    //     }
-    // })
-    // .flatten()
-    // .collect()
+    for i in set.into_iter() {
+        nset.insert(i);
+    }
+
+    // Remove from set if not connected to all others
+    nset.iter()
+    .filter(|&c| {
+        // Get set of all connections to c
+        let m: HashSet<Computer> = connections.iter()
+        .filter_map(|(c1,c2)| {
+            if c1 == c { 
+                Some(c2) 
+            } else if c2 == c { 
+                Some(c1) 
+            } else { 
+                None 
+            }
+        })
+        .cloned()
+        .collect();
+
+        let mut s2 = nset.clone();
+        s2.remove(c);
+        s2.is_subset(&m)
+    })
+    .cloned()
+    .collect()
 }
 
 pub fn solve(input: &str) -> Solution {
@@ -66,53 +80,28 @@ pub fn solve(input: &str) -> Solution {
         })
     .collect();
 
-    let computers: HashSet<Computer> = connections
+    let three_computer_sets: HashSet<(Computer,Computer,Computer)> = connections
     .iter()
-    .map(|(c1,c2)| vec![c1,c2])
-    .flatten()
-    .cloned()
-    .collect();
+    .map(|(c1, c2)| -> Vec<(Computer,Computer,Computer)> {
+        let c1_connections: HashSet<Computer> = 
+        connections
+        .iter()
+        .filter_map(|(c3,c4)| if c3 == c1 && c4 != c2 { Some(c4.clone()) } else if c4 == c1 && c3 != c2 { Some(c3.clone()) } else { None })
+        .collect();
+        let c2_connections: HashSet<Computer> = 
+        connections
+        .iter()
+        .filter_map(|(c3,c4)| if c3 == c2 && c4 != c1 { Some(c4.clone()) } else if c4 == c2 && c3 != c1 { Some(c3.clone()) } else { None })
+        .collect();
 
-
-    let three_computer_sets: HashSet<(Computer,Computer,Computer)> = computers
-    .iter()
-    .map(|c1| -> Vec<(Computer,Computer,Computer)> {
-            // c1-c2 c2-c3 c3-c1
-            let c2s: Vec<Computer> = connections
-            .iter()
-            .filter(|(a,b)| a == c1 || b == c1)
-            .map(|(a,b)| if a == c1 { *b } else { *a })
-            .collect();
-
-            // println!("Computer {} is connected to {}", repr(c1), c2s.iter().map(|c| repr(c)).join(","));
-
-
-            let sets: Vec<(Computer,Computer,Computer)> = c2s.iter().map(|c2| -> Vec<(Computer,Computer)> {
-                connections
-                .iter()
-                .filter(|(a,b)| (a == c2 && b != c1) || (b == c2 && a != c1))
-                .map(|(a,b)| {
-                    if a == c2 {
-                        (a.clone(), b.clone())
-                    } else {
-                        (b.clone(), a.clone())
-                    }
-                })
-                .collect()
-            })
-            .flatten()
-            .filter(|(_c2,c3)| {
-                connections.iter().any(|(a,b)| (a == c3 && b == c1) || (b == c3 && a == c1))
-            })
-            .map(|(c2,c3)| {
-                let mut v = vec![c2.clone(), c3.clone(), c1.clone()];
-                v.sort();
-                (v[0],v[1],v[2])
-            })
-            .collect();
-
-
-        sets
+        c1_connections
+        .intersection(&c2_connections)
+        .map(|c3| {
+            let mut v = vec![c1.clone(), c2.clone(), c3.clone()];
+            v.sort();
+            (v[0], v[1], v[2])
+        })
+        .collect()
     })
     .flatten()
     .collect();
@@ -121,14 +110,24 @@ pub fn solve(input: &str) -> Solution {
     .filter(|(c1,c2,c3)| 
     computer_starts_with_t(c1) || computer_starts_with_t(c2) || computer_starts_with_t(c3))
     .count();
-    
-    let mut largest_group: Vec<Computer> = computers
-    .iter()
-    .map(|c| find_connected(c, &connections))
-    .max_by_key(|c| c.len())
-    .unwrap();
-    largest_group.sort();
 
+    let largest_group = connections
+    .iter()
+    .map(|s| -> HashSet<Computer>{
+        let mut set0: HashSet<Computer> = HashSet::new();
+        set0.insert(s.0);
+        set0.insert(s.1);
+        let x = expand_set(set0, &connections);
+        x
+    })
+    .max_by_key(|s| s.len())
+    .map(|h| {
+        let mut v = h.into_iter().collect::<Vec<Computer>>();
+        v.sort();
+        v
+    })
+    .unwrap();
+    
     let p2 = largest_group.iter().map(|c| repr(c)).join(",");
     
     Solution::new(p1, p2)

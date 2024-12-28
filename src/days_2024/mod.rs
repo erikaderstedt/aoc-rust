@@ -21,7 +21,7 @@ pub mod day20;
 pub mod day21;
 pub mod day22;
 pub mod day23;
-// pub mod day24;
+pub mod day24;
 // pub mod day25;
 
 
@@ -50,7 +50,7 @@ pub fn get_solver(day: u8) -> Option<crate::common::Solver> {
         21 => Some(day21::solve),
         22 => Some(day22::solve),
         23 => Some(day23::solve),
-        // 24 => Some(day24::solve),
+        24 => Some(day24::solve),
         // 25 => Some(day25::solve),
         _ => None,
     }
