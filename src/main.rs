@@ -121,7 +121,7 @@ fn run_day(day_func: &Solver, year: &str, day: &str, input_path: Option<&Path>, 
         (solution, duration)
     };
 
-    print!("A: {: <15} B: {: <50} ", solution.part_1,solution.part_2);
+    print!("A: {: <17} B: {: <50} ", solution.part_1,solution.part_2);
     println!("Elapsed time: {:>7} µs", duration.as_micros());
 
     Ok(duration)
