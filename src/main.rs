@@ -12,7 +12,8 @@ mod crate_info;
 // mod days_2021;
 // mod days_2022;
 // mod days_2023;
-mod days_2024;
+// mod days_2024;
+mod days_2025;
 mod common;
 mod grid;
 
@@ -58,7 +59,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let years = match matches.value_of("year") {
         Some(year) => vec![year],
-        _ => vec!["2015","2018","2019","2020","2021", "2022"],
+        _ => vec!["2015","2018","2019","2020","2021", "2022", "2023", "2024", "2025"],
     };
     let multiple_years = years.len() > 1;
 
@@ -74,7 +75,8 @@ fn main() -> Result<(), std::io::Error> {
             // "2021" => days_2021::get_solver,
             // "2022" => days_2022::get_solver,
             // "2023" => days_2023::get_solver,
-            "2024" => days_2024::get_solver,
+            // "2024" => days_2024::get_solver,
+            "2025" => days_2025::get_solver,
             _ => panic!("Year not implemented!"),
         };
         
