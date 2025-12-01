@@ -5,22 +5,28 @@ use crate::common::Solution;
 pub fn solve(input: &str) -> Solution {
     let mut p1 = 0;
     let mut p2 = 0;
-    let mut position = 50u64;
+    let mut position = 50;
 
     for line in input.lines() {
         let (direction, length) = line.split_at(1);
-        let length = length.parse::<usize>().unwrap();
+        let mut length = length.parse::<usize>().unwrap();
 
-        for _ in 0..length {
-            position = match direction {
-                "L" => (position + 99).rem_euclid(100),
-                "R" => (position + 1).rem_euclid(100),
-                _ => panic!("wrong direction"),
-            };
-            if position == 0 {
-                p2 = p2 + 1;
-            }
+        while length >= 100 {
+            length = length - 100;
+            p2 = p2 + 1;
         }
+
+        position = match direction {
+            "L" => { 
+                if position <= length && position != 0 { p2 = p2 + 1 };
+                (position + 100 - length).rem_euclid(100)
+            },
+            "R" => {
+                if position + length > 99 && position != 0 { p2 = p2 + 1 };
+                (position + length).rem_euclid(100)
+            },
+            _ => panic!("wrong direction"),
+            };
         
         if position == 0 {
             p1 = p1 + 1;
