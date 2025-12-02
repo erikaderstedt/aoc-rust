@@ -2,30 +2,31 @@
 
 use crate::common::Solution;
 
+const START: usize = 50;
+const SZ: usize = 100;
+
 pub fn solve(input: &str) -> Solution {
     let mut p1 = 0;
     let mut p2 = 0;
-    let mut position = 50;
+    let mut position = START;
 
     for line in input.lines() {
         let (direction, length) = line.split_at(1);
         let mut length = length.parse::<usize>().unwrap();
 
-        while length >= 100 {
-            length = length - 100;
-            p2 = p2 + 1;
-        }
+        p2 = p2 + length / SZ;
+        length = length.rem_euclid(SZ);
 
         position = match direction {
-            "L" => { 
+            "L" => {
                 if position <= length && position != 0 { p2 = p2 + 1 };
-                (position + 100 - length).rem_euclid(100)
+                (position + SZ - length).rem_euclid(SZ)
             },
             "R" => {
-                if position + length > 99 && position != 0 { p2 = p2 + 1 };
-                (position + length).rem_euclid(100)
+                if position + length >= SZ && position != 0 { p2 = p2 + 1 };
+                (position + length).rem_euclid(SZ)
             },
-            _ => panic!("wrong direction"),
+            _ => panic!("invalid direction"),
             };
         
         if position == 0 {
