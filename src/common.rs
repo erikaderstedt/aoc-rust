@@ -41,6 +41,7 @@ fn read_all<I: Read>(mut source: I) -> std::io::Result<String> {
     source.read_to_string(&mut contents).map(|_u| contents)
 }
 
+#[allow(dead_code)]
 pub fn parsed_from_each_line<T: FromStr>(input: &str) -> Vec<T> 
 where T::Err: std::fmt::Display
 {

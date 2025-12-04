@@ -28,6 +28,7 @@ pub enum Direction {
 
 impl Direction {
 
+    #[allow(dead_code)]
     pub fn u8(&self) -> u8 {
         match self {
             Direction::East => 1u8,
@@ -173,6 +174,7 @@ impl<T: GridElement> Grid<T> {
         self.locations = l;
     }
 
+    #[allow(dead_code)]
     pub fn enclosed(&self, element: T) -> Grid<T> {
         let rows = self.rows + 2;
         let cols = self.cols + 2;
@@ -195,6 +197,7 @@ impl<T: GridElement> Grid<T> {
         self.locations.iter().position(|i| i == element).map(|l| Position { row: l / self.cols, column: l % self.cols })
     }
 
+    #[allow(dead_code)]
     pub fn positions(&self) -> GridIterator {
         GridIterator { row: 0, col: 0, min_col:0, max_col: self.cols, max_row: self.rows }
     }

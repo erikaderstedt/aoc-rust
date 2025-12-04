@@ -25,11 +25,8 @@ fn best_battery(bank: &Vec<usize>, start_index: usize, remaining: usize) -> usiz
 pub fn solve(input: &str) -> Solution {
     let banks: Vec<Vec<usize>> = input
         .lines()
-        .map(|line| line
-            .chars()
-            .map(|c| c as u8)
-            .map(|c| c - 48)
-            .map(|c| c as usize)
+        .map(|line| line.as_bytes().iter()
+            .map(|c| (c - 48) as usize)
             .collect())
         .collect();
 
