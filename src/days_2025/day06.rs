@@ -1,121 +1,73 @@
 // https://adventofcode.com/2025/day/6
 
-use itertools::{Itertools, rev};
-
 use crate::common::Solution;
 
-#[derive(Debug)]
 enum Operator {
     Multiply,
     Add
 }
 
-fn transpose2<T>(v: Vec<Vec<T>>) -> Vec<Vec<T>> {
-    assert!(!v.is_empty());
-    let len = v[0].len();
-    let mut iters: Vec<_> = v.into_iter().map(|n| n.into_iter()).collect();
-    (0..len)
-        .map(|_| {
-            iters
-                .iter_mut()
-                .map(|n| n.next().unwrap())
-                .collect::<Vec<T>>()
-        })
-        .collect()
+struct Block {
+    operator: Operator,
+    start: usize,
+    end: usize
 }
 
 pub fn solve(input: &str) -> Solution {
-
-    let n = input.lines().count();
-    let numbers: Vec<Vec<i64>> = input.lines().take(n-1).map(|line|
-        line.split_whitespace().map(|r| r.parse::<i64>().unwrap()).collect()
-    ).collect();
-    let operators: Vec<Operator> = input.lines()
-        .last()
-        .unwrap()
-        .split_whitespace()
-        .map(|r| {
-            match r {
-                "*" => Operator::Multiply,
-                "+" => Operator::Add,
-                _ => panic!("Bad operator")
-            }
-        }).collect();
-
-    let numbers = transpose2(numbers);
-
-    let p1 = operators.iter().enumerate()
-        .fold(0, |acc, (index, operator)| {
-            let numbers = &numbers[index];
-        acc + match operator {
-            Operator::Multiply => numbers.iter().fold(1, |acc, value| acc*value),
-            Operator::Add => numbers.iter().fold(0, |acc, value| acc + value),
-        }
-        });
-
-    // Find space positions
-    // all spaces in row 0, row 1 ..,. Append them, sort them, and find which has n occurrences.
-    
-    let mut spaces: Vec<usize> =
-    input
-        .lines()
-        .map(|line| {
-            line
-                .chars()
-                .enumerate()
-                .filter(|(_, c)| *c == ' ')
-                .map(|(i,_)| i)
+    let n = input.lines().count() - 1;
+    let operator_line = input.lines().last().unwrap();
+    let blocks: Vec<Block> = operator_line.chars()
+        .enumerate()
+        .filter_map(|(i,c)| match c {
+            '*' => Some(Block::from(Operator::Multiply, i, operator_line)),
+            '+' => Some(Block::from(Operator::Add, i, operator_line)),        
+            _ => None
         })
-        .flatten()
-        .sorted()
-        .dedup_with_count()
-        .filter(|(count, _)| *count >= n)
-        .map(|(_, i)| i)
         .collect();
+    
+    let p1: usize = blocks.iter().map(|block| {
+        input.lines()
+            .take(n)
+            .map(|line| line[block.start..block.end].trim().parse::<usize>().unwrap())
+            .fold(block.operator.identity(), |acc, value| block.operator.apply(acc, value))
+    }).sum::<usize>();
 
-    spaces.insert(0, 0);
-    spaces.push(input.lines().next().unwrap().len());
-
-    let p2: u64 = spaces
-        .iter()
-        .zip(spaces.iter().skip(1))
-        .map(|(start, stop)| {
-            let numbers: Vec<u64> = ((*start)..(*stop))
-                .flat_map(|column| {
-                    let digits: Vec<String> = input
-                        .lines()
-                        .take(n-1)
-                        .map(|line| {
-                            line[column..(column+1)].to_string()
-
-                        })
-                        .collect();
-                    let s = digits
-                        .join("")
-                        .trim_end()
-                        .replace(" ", "0");
-
-                        s.parse::<u64>().ok()
-                })
-                .collect();
-
-            let operator = match input.lines().last().unwrap()[(*start)..(*stop)].trim() {
-                                "*" => Operator::Multiply,
-                "+" => Operator::Add,
-                _ => panic!("Bad operator")
-            };
-
-            match operator {
-            Operator::Multiply => numbers.iter().fold(1, |acc, value| acc*value),
-            Operator::Add => numbers.iter().fold(0, |acc, value| acc + value),
-        }
-
+    let p2: usize = blocks.iter().map(|block| {
+        (block.start..block.end).map(|column| {
+            input.lines()
+                .take(n)
+                .flat_map(|line| line[column..(column+1)].parse::<usize>().ok())
+                .fold(0, |acc, digit| 10*acc + digit)
         })
-        .sum::<u64>();
-    
+        .fold(block.operator.identity(), |acc, value| block.operator.apply(acc, value))
+    })
+    .sum::<usize>();
 
-    
     Solution::new(p1, p2)
 }
 
-// 4352465490574 wrong
+impl Block {
+    fn from(operator: Operator, start: usize, line: &str) -> Block {
+        let end = match line[(start+1)..].find(|c| c == '*' || c == '+') {
+            Some(n) => start + n,
+            None => line.len()
+        };
+        Block { operator, start, end }
+    }
+}
+
+impl Operator {
+    fn apply(&self, a: usize, b: usize) -> usize {
+        match self {
+            Operator::Add => a + b,
+            Operator::Multiply => a * b
+        }
+    }
+
+    fn identity(&self) -> usize {
+        match self {
+            Operator::Add => 0,
+            Operator::Multiply => 1
+        }
+    }
+}

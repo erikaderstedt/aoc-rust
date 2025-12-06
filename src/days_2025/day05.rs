@@ -2,61 +2,52 @@
 
 use crate::common::{Solution, parsed_from_each_line};
 
+#[derive(Debug)]
 struct IngredientRange {
-    start: u64,
-    stop: u64,
+    start: i64,
+    stop: i64,
 }
 
 pub fn solve(input: &str) -> Solution {
 
     let (ingredient_id_ranges, ingredient_ids) = input.split_once("\n\n").unwrap();
-    let ingredient_id_ranges: Vec<IngredientRange> = parsed_from_each_line(ingredient_id_ranges);
-    let ingredients: Vec<u64> = ingredient_ids.lines().map(|line| line.parse::<u64>().unwrap()).collect();
+    let mut ingredient_id_ranges: Vec<IngredientRange> = parsed_from_each_line(ingredient_id_ranges);
+    let ingredients: Vec<i64> = ingredient_ids.lines().map(|line| line.parse::<i64>().unwrap()).collect();
     
     let p1 = ingredients.iter().filter(|i|
         ingredient_id_ranges.iter().any(|r| r.in_range(**i))
     ).count();
 
-    let mut ranges: Vec<IngredientRange> = Vec::new();
-    for n in ingredient_id_ranges.into_iter() {
-        // is n already covered.
-        if ranges.iter().any(|r| r.is_other_a_subrange(&n)) {
-            continue
+    ingredient_id_ranges.sort_unstable_by(|r1,r2| {
+        if r1.start == r2.start {
+            r1.stop.cmp(&r2.stop)
+        } else {
+            r1.start.cmp(&r2.start)
         }
+    });
 
-        // is there another range covered by other, if so, remove those
-        ranges = ranges.into_iter().filter(|r| !n.is_other_a_subrange(&r)).collect();
-
-        // crop other according to existing ranges, then add it to the list
-        for range in ranges.iter_mut() {
-            range.intersect(&n);   
+    let mut b = IngredientRange { start: 0, stop: -1 };
+    let mut p2 = 0;
+    for s in ingredient_id_ranges.iter() {
+        if b.stop < s.start {
+            p2 = p2 + b.num_ingredients();
+            b.start = s.start;
+            b.stop = s.stop;
+        } else {
+            b.stop = std::cmp::max(b.stop, s.stop);
         }
-        ranges.push(n);
     }
+    p2 = p2 + b.num_ingredients();
 
-    let p2: u64 = ranges.iter().map(|r| r.num_ingredients()).sum();
-    
     Solution::new(p1, p2)
 }
 
 impl IngredientRange {
-    fn in_range(&self, ingredient_id: u64) -> bool {
+    fn in_range(&self, ingredient_id: i64) -> bool {
         self.start <= ingredient_id && ingredient_id <= self.stop
     }
 
-    fn is_other_a_subrange(&self, other: &IngredientRange) -> bool {
-        self.in_range(other.start) && self.in_range(other.stop)
-    }
-
-    fn intersect(&mut self, other: &IngredientRange) {
-        if other.stop >= self.start && other.start <= self.start {
-            self.start = other.stop + 1            
-        } else if other.start <= self.stop && other.stop >= self.stop {
-            self.stop = other.start - 1;
-        }
-    }
-
-    fn num_ingredients(&self) -> u64 {
+    fn num_ingredients(&self) -> i64 {
         self.stop - self.start + 1
     }
 }
@@ -67,7 +58,7 @@ impl std::str::FromStr for IngredientRange {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.split_once("-") {
             Some((start, stop)) => {
-                match (start.parse::<u64>(), stop.parse::<u64>()) {
+                match (start.parse::<i64>(), stop.parse::<i64>()) {
                     (Ok(start), Ok(stop)) => Ok(Self { start, stop }),
                     _ => Err("unable to parse"),
                 }
