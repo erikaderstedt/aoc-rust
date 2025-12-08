@@ -3,10 +3,8 @@
 use itertools::Itertools;
 use crate::common::Solution;
 
-#[derive(Debug)]
 struct JunctionBox {
     id: usize,
-    circuit_id: Option<usize>,
     position: [i64;3]
 }
 
@@ -21,67 +19,56 @@ impl JunctionBox {
 const CONNECTIONS: usize = 1000;
 
 pub fn solve(input: &str) -> Solution {
+    // Attempt aggres
     let mut boxes: Vec<JunctionBox> = input.lines()
         .enumerate()
         .map(|(i, line)| {
             let nums: Vec<i64> = line.split(',').map(|s| s.parse::<i64>().unwrap()).collect();
-            JunctionBox { id: i, circuit_id: None, position: [nums[0], nums[1], nums[2]] }
+            JunctionBox { id: i, position: [nums[0], nums[1], nums[2]] }
         })
         .collect();
+
+    let minimum_required_distance: i64 = boxes
+        .iter()
+        .map(|a| boxes
+            .iter()
+            .filter(|b| a.id != b.id )
+            .map(|b| a.distance_to(b))
+            .min().unwrap_or(0))
+        .max().unwrap();
 
     let distances: Vec<(usize, usize, i64)> = boxes.iter()
         .cartesian_product(boxes.iter())
-        .filter(|(a,b)| {
-            a.id < b.id 
+        .filter(|(a,b)| a.id < b.id )
+        .filter_map(|(a,b)| {
+            let d = a.distance_to(b);
+            if d <= minimum_required_distance {
+                Some((a.id, b.id, d))
+            } else {
+                None
+            }
         })
-        .map(|(a,b)| (a.id, b.id, a.distance_to(b)))
-        .sorted_by_key(|k| k.2)
+        .sorted_unstable_by_key(|k| k.2)
         .collect();
 
-    let mut p1: usize = 0;
-    let mut p2: i64 = 0;
-    for (i, lowest) in distances.iter().enumerate() {
+    let last = distances.last().unwrap();
+    let p2 = boxes[last.0].position[0] * boxes[last.1].position[0];
 
-        match (boxes[lowest.0].circuit_id, boxes[lowest.1].circuit_id) {
-            (Some(c1), Some(c2)) => {
-                if c1 != c2 {
-                    for b in boxes.iter_mut() {
-                        match b.circuit_id {
-                            Some(c) if c == c2 => { b.circuit_id = Some(c1) }
-                            _ => {},
-                        }
-                    }
-                }
-            },
-            (Some(c1), None) => { boxes[lowest.1].circuit_id = Some(c1) }
-            (None, Some(c2)) => { boxes[lowest.0].circuit_id = Some(c2) }
-            (None, None) => {
-                let next_circuit_id = match boxes.iter().filter_map(|b| b.circuit_id).max() {
-                    Some(i) => i + 1,
-                    None => 0
-                };
-                boxes[lowest.0].circuit_id = Some(next_circuit_id);
-                boxes[lowest.1].circuit_id = Some(next_circuit_id);
-            }            
+    let mut circuit_id_counts = vec![1;boxes.len()];
+    for (i, &(j0, j1, _)) in distances.iter().enumerate().take(CONNECTIONS) {
+        if i == CONNECTIONS {            
         }
-
-        let circuit_ids: Vec<(usize, usize)>  = boxes.iter()
-            .filter_map(|b| b.circuit_id)
-            .sorted()
-            .dedup_with_count()
-            .sorted_by_key(|v| v.0)
-            .rev()
-            .collect();
-
-
-        if i == CONNECTIONS - 1 {
-            p1 = circuit_ids.iter().take(3).map(|x| x.0).product();
-        }
-        if boxes.iter().all(|b| b.circuit_id.is_some()) && circuit_ids.len() == 1 {
-            p2 = boxes[lowest.0].position[0] * boxes[lowest.1].position[0];
-            break
+        let id0 = boxes[j0].id;
+        let id1 = boxes[j1].id;
+        if id0 != id1 {
+            for b in boxes.iter_mut() {
+                if b.id == id1 { b.id = id0; }
+            }
+            circuit_id_counts[id0] += circuit_id_counts[id1];
+            circuit_id_counts[id1] = 0;
         }
     }
-    
+    let p1: usize = circuit_id_counts.iter().sorted().rev().take(3).product();
+
     Solution::new(p1, p2)
 }
