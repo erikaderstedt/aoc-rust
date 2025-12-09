@@ -28,6 +28,13 @@ pub fn solve(input: &str) -> Solution {
         })
         .collect();
 
+    ///////////////////////////
+    // Note: this optimization is incorrect - it may not hold
+    // for all inputs (two boxes close together but far away from
+    // the others will be a problem)
+    // Most likely it will hold for every real input in AoC.
+    ///////////////////////////
+    
     let minimum_required_distance: i64 = boxes
         .iter()
         .map(|a| boxes
