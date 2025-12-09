@@ -9,33 +9,22 @@ struct RedTile {
 }
 
 pub fn solve(input: &str) -> Solution {
-
     let red_tiles: Vec<RedTile> = input.lines().map(|line| {
         let v: Vec<i64> = line.split(',').map(|s| s.parse::<i64>().unwrap()).collect();
         RedTile { x: v[0], y: v[1] }
     }).collect();
 
-    let p1: i64 = red_tiles
-        .iter()
-        .tuple_combinations()
+    let p1: i64 = red_tiles.iter().tuple_combinations()
         .map(|(a,b)| ((a.x - b.x).abs() + 1) * ((a.y - b.y).abs() + 1))
         .max().unwrap();
-    let p2: i64 = red_tiles
-        .iter()
-        .tuple_combinations()
-        .filter(|(a,b)| {
-            let x0 = a.x.min(b.x);
-            let x1 = a.x.max(b.x);
-            let y0 = a.y.min(b.y);
-            let y1 = a.y.max(b.y);
-            !red_tiles.iter().circular_tuple_windows()
-                .any(|(p, q)|
-                    // Check if either of our corners is inside their rect
-                    x0 < p.x.max(q.x) &&
-                    x1 > p.x.min(q.x) &&
-                    y0 < p.y.max(q.y) &&
-                    y1 > p.y.min(q.y)
-            )
+    let p2: i64 = red_tiles.iter().tuple_combinations()
+        .filter(|(a,b)| {            
+            red_tiles.iter().circular_tuple_windows()
+                .all(|(p, q)|                    
+                    // Check if the green line between p and q runs in the interior
+                    // of the rectangle formed by (x0,y0) and (x1,y1)
+                    a.x.min(b.x) >= p.x.max(q.x) || a.x.max(b.x) <= p.x.min(q.x) ||
+                    a.y.min(b.y) >= p.y.max(q.y) || a.y.max(b.y) <= p.y.min(q.y))
         })
         .map(|(a,b)| ((a.x - b.x).abs() + 1) * ((a.y - b.y).abs() + 1))
         .max().unwrap();
