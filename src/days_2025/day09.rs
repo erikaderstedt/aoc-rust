@@ -3,6 +3,10 @@
 use itertools::Itertools;
 use crate::common::Solution;
 
+// Note: it is possible to construct an input where this algorithm doesn't work - 
+// it assumes that the largest rectangle formed by two points is inside the polygon.
+// (vs being on the outside)
+
 pub fn solve(input: &str) -> Solution {
     let red_tiles: Vec<RedTile> = input.lines().map(|line| {
         let (x, y) = line.split(',').map(|s| s.parse::<i64>().unwrap()).collect_tuple().unwrap();
