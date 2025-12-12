@@ -1,71 +1,124 @@
 // https://adventofcode.com/2025/day/10
 
+use itertools::Itertools;
 use crate::common::{Solution, parsed_from_each_line};
 use std::str::FromStr;
-// // use pathfinding::prelude::bfs;
-use std::collections::VecDeque;
-// use std::usize;
-
-// ny metod:
-// pathfinding:
-// titta på 3,5,4,7 (joltages)
-// se att de är jämna eller udda
-// vilka knappar behövs tryckas för att nå detta state
-// "tryck" på dem
-// vad är kvar? ett helt jämnt
-// En ny branch för varje statedetta branchar)
-// Exempel, rad 127 från input:
+// use rayon::prelude::*;
 
 
-// fn sort_by_leading_zeros(v: Vec<Vec<i32>>, q: Vec<i32>) -> (Vec<Vec<i32>>, Vec<i32>) {
-//     let sorted_indices: Vec<usize> = (0..v.len()).sorted_by_key(|i| v[*i].iter().take_while(|x| **x == 0).count() ).collect();
+fn sort_by_leading_zeros(v: Vec<Vec<i32>>, q: Vec<i32>) -> (Vec<Vec<i32>>, Vec<i32>) {
+    let sorted_indices: Vec<usize> = (0..v.len()).sorted_by_key(|i| v[*i].iter().take_while(|x| **x == 0).count() ).collect();
 
-//     let mut u = v.clone();
-//     let mut t = q.clone();
+    let mut u = v.clone();
+    let mut t = q.clone();
 
-//     for (j, i) in sorted_indices.into_iter().enumerate() {
-//         u[j] = v[i].clone();
-//         t[j] = q[i];
-//     }
-//     (u, t)
-// }
+    for (j, i) in sorted_indices.into_iter().enumerate() {
+        u[j] = v[i].clone();
+        t[j] = q[i];
+    }
+    (u, t)
+}
 
-// fn gauss_elimination(v: Vec<Vec<i32>>, q: Vec<i32>) -> (Vec<Vec<i32>>, Vec<i32>) {
-//     let (mut u, mut t) = sort_by_leading_zeros(v, q);
+fn gauss_elimination(v: Vec<Vec<i32>>, q: Vec<i32>) -> (Vec<Vec<i32>>, Vec<i32>) {
+    let (mut u, mut t) = sort_by_leading_zeros(v, q);
 
-//     for c in 0..(u[0].len().min(u.len())) {
-//     // for c in 0..1 {
-//         if u[c][c] < 0 {
-//             u[c] = u[c].iter().map(|x| -x).collect();
-//             t[c] = -t[c];
-//         }
-//         let x0 = u[c][c];        
-//         if x0 == 0 { continue; }
+    for c in 0..(u[0].len().min(u.len())) {
+        if u[c][c] < 0 {
+            u[c] = u[c].iter().map(|x| -x).collect();
+            t[c] = -t[c];
+        }
+      
+        if u[c][c] == 0 { 
+            // Find first non-zero element in this row.
+            if let Some((i,_)) = u[c].iter().enumerate().skip_while(|(_,v)| **v == 0).next() {
+                // Swap columns i and c, for all rows.
+                // We no longer care which button is which
+                for r2 in 0..u.len() {
+                    let s = u[r2][i];
+                    u[r2][i] = u[r2][c];
+                    u[r2][c] = s;
+                }
+            } else {
+                continue;
+            }
+
+        }
+        let x0 = u[c][c];
         
-//         // All rows below c which are non-zero in c need to be handled.
-//         for r in (c+1)..u.len() {
-//             let x1 = u[r][c];
-//             let factor = if x1.rem_euclid(x0) != 0 { x0 } else { 1 };
-//             u[r] = u[r].iter().zip(u[c].iter()).map(|(v1, v0)| factor * v1 - factor * x1 / x0 * v0).collect();
-//             t[r] = factor*t[r] - factor * x1 / x0 * t[c];
-//         }
+        // All rows below c which are non-zero in c need to be handled.
+        for r in (c+1)..u.len() {
+            let x1 = u[r][c];
+            let factor = if x1.rem_euclid(x0) != 0 { x0 } else { 1 };
+            u[r] = u[r].iter().zip(u[c].iter()).map(|(v1, v0)| factor * v1 - factor * x1 / x0 * v0).collect();
+            t[r] = factor*t[r] - factor * x1 / x0 * t[c];
+        }
 
-//         // Sort again by leading zeros
-//         (u, t) = sort_by_leading_zeros(u, t)
-//     }
+        // Sort again by leading zeros
+        (u, t) = sort_by_leading_zeros(u, t)
+    }
 
-//     // Remove rows that are all zeros (check that t is also zero for that index)
-//     let all_zeros: Vec<usize> = u.iter().enumerate().filter(|(_, row)| row.iter().all(|v| *v == 0)).map(|(i, _)| i).collect();
-//     let mut num_removed = 0;
-//     for zero_index in all_zeros.into_iter() {
-//         assert!(t[zero_index - num_removed] == 0);
-//         u.remove(zero_index - num_removed);
-//         t.remove(zero_index - num_removed);
-//         num_removed = num_removed + 1;
-//     }
+    // Remove rows that are all zeros (check that t is also zero for that index)
+    let all_zeros: Vec<usize> = u.iter().enumerate().filter(|(_, row)| row.iter().all(|v| *v == 0)).map(|(i, _)| i).collect();
+    let mut num_removed = 0;
+    for zero_index in all_zeros.into_iter() {
+        assert!(t[zero_index - num_removed] == 0);
+        u.remove(zero_index - num_removed);
+        t.remove(zero_index - num_removed);
+        num_removed = num_removed + 1;
+    }
 
-//     (u,t)
-// }
+    // Put matrix into row echelon form as far as possible.
+    for r in 0..(u.len()-1) {
+        assert!(u[r][r] != 0, "m = np.array({:?});j=np.array({:?})", u, t); // Diagonal element must not be zero
+        for c in (r+1)..u[0].len().min(u.len()) {
+            if u[r][c] != 0 {
+                let x0 = u[r][c];
+                let x1 = u[c][c];
+                if x1 != 0 {
+                    let factor = if x0.rem_euclid(x1) != 0 {
+                        // Multiply whole u[r] row by x1
+                        for v in u[r].iter_mut() {
+                            *v = *v * x1;
+                        }
+                        t[r] = t[r] * x1;
+                        x1
+                    } else {
+                        1
+                    };
+
+                    for c2 in c..u[0].len() {
+                        u[r][c2] = u[r][c2] - factor * x0 / x1 * u[c][c2];
+                    }
+                    t[r] = t[r] - factor * x0 / x1 * t[c];
+                }
+            }
+        }
+    }
+
+    // Reduced form if possible
+    // Ideally we would need to find the GCD of all non-zero items in the row and in t.
+    // We settle for just removing 2,3,5
+    for r in 0..u.len() {
+        for p in [2,3,5].iter() {
+            if u[r].iter().all(|v| v.rem_euclid(*p) == 0) && t[r].rem_euclid(*p) == 0 {
+                for x in u[r].iter_mut() {
+                    *x = *x / p;
+                }
+                t[r] = t[r] / p
+            }
+        }
+    }
+
+    // Ensure diagonal is positive
+    for c in 0..u.len() {
+        if u[c][c] < 0 {
+            u[c] = u[c].iter().map(|x| -x).collect();
+            t[c] = -t[c];
+        }
+    } 
+
+    (u,t)
+}
 
 #[derive(Debug,Clone)]
 struct Button {
@@ -82,203 +135,272 @@ struct Machine {
 
 impl Machine {
 
-    // fn button_press_matrices(&self) -> (Vec<Vec<i32>>, Vec<i32>) {
-    //     let m = self.joltages.len();
-    //     let n = self.buttons.len();
-    //     let mut v = vec![vec![0i32;n];m];
+    fn apply<const N:usize>(u: &Vec<Vec<i32>>, t: &Vec<i32>, free: [i32;N]) -> Option<i32> {
+        let lc = u[0].len()-1;
+        // TODO: early abort as soon as there is a
+        let mut total = 0;
 
-    //     for (i, button) in self.buttons.iter().enumerate() {
-    //         for joltage in 0..m {
-    //             if button & ((1 << joltage) as u64) > 0 {
-    //                 v[joltage][i] = 1;
+        for r in 0..u.len() {
+            let f = t[r] - match N {
+                1 => u[r][lc]*free[0],
+                2 => u[r][lc-1]*free[0] + u[r][lc]*free[1],
+                3 => u[r][lc-2]*free[0] + u[r][lc-1]*free[1] + u[r][lc]*free[2],
+                _ => panic!("not implemented")
+            };            
+            if f >= 0 && f.rem_euclid(u[r][r]) == 0 {
+                total = total + f / u[r][r]
+            } else {
+                return None;
+            }
+        }
+        Some(total)
+    }
+
+    fn solve_with_one_free_variable(&self, u: &Vec<Vec<i32>>, t: &Vec<i32>) -> i32 {
+        let m = self.joltages.iter().max().unwrap();
+        let lc = u[0].len() - 1;
+        // Look in last column. Is there any positive
+        let largest = (0..u.len()).filter_map(|row_index|  {
+            let value = u[row_index][lc];
+            if value > 0 && t[row_index] > 0 {
+                Some(t[row_index] / value)
+            } else {
+                None
+            }
+        }).max().unwrap_or(*m);
+
+        (0..=largest).filter_map(|value| Machine::apply(u, t, [value]).map(|v| v + value)).min().unwrap()
+    }
+
+    fn solve_with_two_free_variables(&self, u: &Vec<Vec<i32>>, t: &Vec<i32>) -> i32 {
+        let m = self.joltages.iter().max().unwrap().clone();
+        // let lc = u[0].len() - 1;
+        // // Look in last two column. Each row with no negatives will give conditions Is there any positive
+        // let largest = (0..u.len()).filter_map(|row_index|  {
+        //     let value = u[row_index][lc];
+        //     if value > 0 && t[row_index] > 0 {
+        //         Some(t[row_index] / value)
+        //     } else {
+        //         None
+        //     }
+        // }).max().unwrap_or(m);
+
+        (0..=m).filter_map(|v1| (0..m).filter_map(|v2| Machine::apply(u, t, [v1,v2]).map(|v| v + v1 + v2)).min()).min().unwrap()
+    }
+
+    fn solve_with_three_free_variables(&self, u: &Vec<Vec<i32>>, t: &Vec<i32>) -> i32 {
+        let m = self.joltages.iter().max().unwrap().clone();
+        // let lc = u[0].len() - 1;
+        // // Look in last two column. Each row with no negatives will give conditions Is there any positive
+        // let largest = (0..u.len()).filter_map(|row_index|  {
+        //     let value = u[row_index][lc];
+        //     if value > 0 && t[row_index] > 0 {
+        //         Some(t[row_index] / value)
+        //     } else {
+        //         None
+        //     }
+        // }).max().unwrap_or(m);
+
+        // TODO: increase each from 0, until we start getting values. When the value starts to increase, we stop?
+        (0..=m).filter_map(|v1| (0..m).filter_map(|v2| (0..m).filter_map(|v3| Machine::apply(u, t, [v1,v2,v3]).map(|v| v + v1 + v2 + v3)).min()).min()).min().unwrap()
+    }
+
+    fn button_press_matrices(&self) -> (Vec<Vec<i32>>, Vec<i32>) {
+        let m = self.joltages.len();
+        let n = self.buttons.len();
+        let mut v = vec![vec![0i32;n];m];
+
+        for (i, button) in self.buttons.iter().enumerate() {
+            for &joltage in button.affects.iter() {
+                v[joltage][i] = 1;
+            }
+        }
+        (v, self.joltages.iter().map(|j| *j as i32).collect())
+    }
+
+    // fn lights(&self) -> Vec<Vec<Vec<Button>>> {
+
+    //     // Pre-calculate every combination of lights
+    //     // To get pattern X, we need to apply buttons (A,B,C) or (B,C,D) or ..
+    //     (0..(1 << self.joltages.len()))
+    //         .map(|pattern: u64| 
+    //         (0..(1<<self.buttons.len())).filter_map(|button_mask: usize| {
+    //             let buttons: Vec<Button> = 
+    //                 self.buttons.iter()
+    //                 .enumerate()
+    //                 .filter(|(j, _)| ((1 << j) & button_mask) > 0)
+    //                 .map(|(_,b)| b)
+    //                 .cloned()
+    //                 .collect();
+    //             // Buttons to activate
+    //             if buttons.iter().fold(0u64, |acc, button| acc ^ button.mask) == pattern {
+    //                 Some(buttons)
+    //             } else {
+    //                 None
+    //             }
+    //         }) // Sets of buttons that match this mattern
+    //         .collect())
+    //         .collect()
+    // }
+
+    // fn pathfinding_solve(&self) -> Option<u32> {
+    //     let start = self.joltages.clone();
+    //     let lights = self.lights();
+
+    //     let mut q: Vec<(Vec<i32>,Vec<u32>)> = vec![(start.clone(),vec![])].into();
+
+    //     let mut results = vec![];
+    //     let mut ma = 0;
+    //     while let Some((v,result)) = q.pop() {
+    //         if v.iter().all(|&x| x == 0 ) {
+    //             // [###.] (1,3) (0,1,2) {10,12,10,2}
+    //             // Alla jämna, dela med två:
+    //             // 5,6,5,1
+    //             // (0,1,2) + (1,3) => 4,4,4,0
+    //             // alla jämna, dela med två
+    //             // 2,2,2,0
+    //             // alla jämna, dela med två
+    //             // 1,1,1,0
+    //             // (0,1,2)
+    //             // 2*(2+2*2*1) = 12 (vilket är svaret) 
+    //             // (1,3) (0,1,2) {10,12,10,2}
+    //             // 0, {5,6,5,1}
+    //             // 2, {2,2,2,0}
+    //             // 0, {1,1,1,0}
+    //             // 1, {0,0,0,0}
+    //             // 0 + 2*(2+ 2* (0 +2*(1)))
+
+    //             let r = result.iter().rev().fold(0, |acc, value| value + 2*acc);
+    //             results.push(r);                
+    //         } else {
+    //             // Calculate the even odd value
+    //             let s = v.iter().enumerate().fold(0, |acc, (i, x)| acc + ((x & 1) << (i as u64)));
+
+    //             // Remember s -> resulting new items in q.
+    //             // Hmm that will depend on the remaining joltage
+
+    //             for possible_buttons in lights[s as usize].iter() {
+
+    //                 let mut j = v.clone();
+    //                 // Apply these buttons to the state (subtract joltage contributions)
+    //                 for button in possible_buttons.iter() {
+    //                     for affects in button.affects.iter() {
+    //                         j[*affects] = j[*affects] - 1;
+    //                     }
+    //                 }
+
+    //                 // Are any joltage values negative? If so, skip this possible_buttons
+    //                 if j.iter().any(|&x| x < 0) {
+    //                     continue;
+    //                 }
+
+    //                 // Cut them in half
+    //                 for x in j.iter_mut() {
+    //                     *x = *x >> 1;
+    //                 }
+
+    //                 let mut nr = result.clone();
+    //                 nr.push(possible_buttons.len() as u32);
+    //                 q.push((j, nr));
+    //                 if q.len() > ma {
+    //                     ma = q.len();
+    //                 }
     //             }
     //         }
     //     }
-    //     (v, self.joltages.iter().map(|j| *j as i32).collect())
+    //     results.into_iter().min()
     // }
 
+    fn gauss_elimination_solve(&self) -> Option<i32> {
+        let (u,v) = self.button_press_matrices();
+        let (mut u, mut v) = gauss_elimination(u, v);
 
-    fn lights(&self) -> Vec<Vec<Vec<Button>>> {
+        let mut presses = vec![];
+        let mut remaining_columns: Vec<usize> = (0..self.buttons.len()).collect();
+        let mut changes_made = true;
+        while changes_made {
+            // Find any row with only one non-zero value
+            // if so, calculate that value, remove the row and adjust u,v for all other rows
+            if let Some(r) = u.iter().position(|row| row.iter().filter(|x| **x != 0).count() == 1) {
+                let c = u[r].iter().position(|x| *x != 0).unwrap();
+                let n = v[r];
+                let d = u[r][c];
+                assert!(n.rem_euclid(d) == 0);
+                let value = n / d;
 
-        // Pre-calculate every combination of lights
-        // To get pattern X, we need to apply buttons (A,B,C) or (B,C,D) or ..
-        (0..(1 << self.joltages.len()))
-            .map(|pattern: u64| 
-            (0..(1<<self.buttons.len())).filter_map(|button_mask: usize| {
-                let buttons: Vec<Button> = 
-                    self.buttons.iter()
-                    .enumerate()
-                    .filter(|(j, _)| ((1 << j) & button_mask) > 0)
-                    .map(|(_,b)| b)
-                    .cloned()
-                    .collect();
-                // Buttons to activate
-                if buttons.iter().fold(0u64, |acc, button| acc ^ button.mask) == pattern {
-                    Some(buttons)
-                } else {
-                    None
+                presses.push(value);
+
+                // Remove this row
+                u.remove(r);
+                v.remove(r);
+
+                // Remove this column
+                for (r, row) in u.iter_mut().enumerate() {
+                    if row[c] != 0 {
+                        v[r] = v[r] - row[c] * value;
+                    }
+                    row.remove(c);
                 }
-            }) // Sets of buttons that match this mattern
-            .collect())
-            .collect()
-    }
-
-    fn minimum_required_button_presses_pt2(&self) -> u32 {
-        let lights = self.lights();
-
-        // TODO: lägg på gaussian solver först
-        // om vi redan vet att en viss knapp ska tryckas på X ggr, dra bort detta från joltage requirements och ta bort knappen
-        // från lights.
-
-        // println!("{:?}", self);
-        // println!("{} {}", self.buttons.len(), self.joltages.len());
-    
-        // // vi behöver inte veta n, bara 
-        let start = self.joltages.clone();
-        let mut q: VecDeque<(Vec<i32>,Vec<u32>)> = vec![(start.clone(),vec![])].into();
-        // let mut explored = vec![start];
-        let mut results = vec![];
-        while let Some((v,result)) = q.pop_front() {
-            if v.iter().all(|&x| x == 0 ) {
-                // [###.] (1,3) (0,1,2) {10,12,10,2}
-                // Alla jämna, dela med två:
-                // 5,6,5,1
-                // (0,1,2) + (1,3) => 4,4,4,0
-                // alla jämna, dela med två
-                // 2,2,2,0
-                // alla jämna, dela med två
-                // 1,1,1,0
-                // (0,1,2)
-                // 2*(2+2*2*1) = 12 (vilket är svaret) 
-                // (1,3) (0,1,2) {10,12,10,2}
-                // 0, {5,6,5,1}
-                // 2, {2,2,2,0}
-                // 0, {1,1,1,0}
-                // 1, {0,0,0,0}
-                // 0 + 2*(2+ 2* (0 +2*(1)))
-
-                let r = result.iter().rev().fold(0, |acc, value| value + 2*acc);
-                results.push(r);
+                remaining_columns.remove(c);
+                changes_made = true;
             } else {
-                // Calculate the even odd value
-                let s = v.iter().enumerate().fold(0, |acc, (i, x)| acc + ((x & 1) << (i as u64)));
-
-                for possible_buttons in lights[s as usize].iter() {
-
-                    let mut j = v.clone();
-                    // Apply these buttons to the state (subtract joltage contributions)
-                    for button in possible_buttons.iter() {
-                        for affects in button.affects.iter() {
-                            j[*affects] = j[*affects] - 1;
-                        }
-                    }
-
-                    // Are any joltage values negative? If so, skip this possible_buttons
-                    if j.iter().any(|&x| x < 0) {
-                        continue;
-                    }
-                    // Remaining joltage values should all be even.
-                    assert!(j.iter().all(|&x| (x & 1) == 0));
-
-                    // Cut them in half
-                    for x in j.iter_mut() {
-                        *x = *x >> 1;
-                    }
-                    let mut nr = result.clone();
-                    nr.push(possible_buttons.len() as u32);
-                    q.push_back((j, nr));
+                // Remove rows that are all zeros (check that t is also zero for that index)
+                let all_zeros: Vec<usize> = u.iter().enumerate().filter(|(_, row)| row.iter().all(|v| *v == 0)).map(|(i, _)| i).collect();
+                let mut num_removed = 0;
+                for zero_index in all_zeros.into_iter() {
+                    assert!(v[zero_index - num_removed] == 0);
+                    u.remove(zero_index - num_removed);
+                    v.remove(zero_index - num_removed);
+                    num_removed = num_removed + 1;
+                    
                 }
+                changes_made = num_removed > 0;
             }
         }
-        results.into_iter().min().unwrap_or(u32::MAX)
+        let already_determined = presses.into_iter().sum::<i32>();
+        if remaining_columns.len() == 0 {
+            // println!("{}", already_determined);
+            Some(already_determined)
+        } else {
+            let n_free_variables = u[u.len()-1].iter().skip_while(|v| **v == 0).count() - 1;
+
+            match n_free_variables {
+                1 => {
+                    let a = self.solve_with_one_free_variable(&u, &v);
+                    // println!("{} = {} + {}", a + already_determined, a, already_determined);
+                    Some(a + already_determined) }, 
+                2 => {
+                    // println!("---- {}", already_determined);
+                    let a = self.solve_with_two_free_variables(&u, &v);
+                    // println!("{} = {} + {} (2 free)", a + already_determined, a, already_determined);
+                    Some(a + already_determined)}, //Some(+ presses.into_iter().sum::<i32>()),
+                3 => {
+                    let a = self.solve_with_three_free_variables(&u, &v);
+                    // println!("{} = {} + {} (3 free)", a + already_determined, a, already_determined);
+                    Some(a + already_determined)
+                    // println!("{} free variables",n_free_variables);
+                    // let n = u[0].len();
+                    // let mut j = 0;
+                    // for row in u.iter() {
+                    //     let last: Vec<&i32> = row.iter().skip(n-n_free_variables).collect();
+                    //     if last.iter().all(|v| **v >= 0) {
+                    //         // println!("{:?}", last);
+                    //         j = j + 1;
+                    //     }
+                    // }
+                    // // if there are no negative in the last three in the row, this gives an upper bound t / u[r][c]
+
+                    // println!("a=np.array({:?});b=np.array({:?});r={}", u, v, already_determined);
+                },
+                _ => { panic!("Too many free variables for this implementation!") }
+            }
+
+        }
     }
 
-
-            //     // F
-            //     for b in self.buttons.iter() {
-            //         let mut n = v.clone();
-            //         let mut exceeded = false;
-            //         for (j, x) in n.iter_mut().enumerate() {
-            //             if (1 << (j as u64)) & b > 0 {
-            //                 *x = *x + 1;
-            //                 if *x > self.joltages[j] {
-            //                     exceeded = true;
-            //                 }
-            //             }
-
-            //         }
-            //         if !exceeded && !explored.contains(&n) {
-            //             println!("{:?} {:?} {}", v, n, i);
-            //             explored.push(n.clone());
-            //             q.push_back((n, i + 1));
-            //         }
-            //     }
-            // }
-        // }
-        // panic!("afdadfskladf");
-//         let p = bfs(&0u64, 
-// |state: &u64| {
-//         let v: Vec<u64> = self.buttons.iter().map(|&b| state ^ b).collect();
-//         println!("state: {} v: {:?}", state, v);
-//         v },
-//         |state: &u64| *state == self.target)
-//         .unwrap();
-
-//         p.len()
-
-
-    // fn press_remaining_buttons_for_joltage(&self, remaining_buttons: Vec<usize>, m: Vec<Vec<i32>>, n: Vec<i32>) -> usize {
-
-    //     // This is at most three in my input.
-    //     let free_variables = u[0].len() - u.len();
-
-
-
-    //     // Pick the first "free_variables" columns as free variables
-    //     // Construct a search space for free variables
-
-    //     // For each point in the search space:
-    //     // - create a copy of m, n
-    //     // - apply 
-              
-    //     // Search the space 
-    //     // Conditions for each remaining button
-    //     // For example, a difficult one:
-    //     // [[1, 0, 1, 1, 1],    22
-    //     //  [0, 1, 0, 0, 1],    27
-    //     //  [0, 0, 1, 1, 0],    8
-    //     //  [0, 0, 0, 1, -1]]   -7
-    //     //
-    //     // ta en rad med bara >= 0
-    //     // sätt en av knapparna till något
-    //     // lös matrisen - få fram totala antalet 
-
-
-    //     // om b1 = 26:
-    //     // [13,26, 0,8, 1]
-    //     // om b1 = 27
-    //     // [12, 27, 1,7, 0]
-    //     // b4: 1
-    //     // b3: 
-
-
-    // }
-
-    // fn maximum_required_button_presses(&self, columns: &Vec<usize>) -> Vec<Vec<i32>> {
-    //     columns.iter().map(|button_index| {
-    //         let button = self.buttons[*button_index];
-    //         // What joltages does this button affect?
-    //         // What is the minimum value of these joltages?
-    //         let maximum_number_of_presses = self.joltages.iter()
-    //             .enumerate()
-    //             .filter(|(index, _)| (1 << *index) & (button as usize) > 0)
-    //             .map(|(_, joltage)| *joltage)
-    //             .min().unwrap_or(0);
-
-    //         (0..=maximum_number_of_presses).map(|v| v).collect()
-    //     })
-    //     .collect()
-    // }
+    fn minimum_required_button_presses_pt2(&self) -> i32 {
+        self.gauss_elimination_solve().unwrap_or(0) // or_else(|| self.pathfinding_solve()).unwrap_or(u32::MAX)
+    }
 
     fn minimum_required_button_presses(&self) -> usize {
 
@@ -311,6 +433,10 @@ impl Machine {
 
 pub fn solve(input: &str) -> Solution {
     let machines: Vec<Machine> = parsed_from_each_line(input);
+
+        // let m = Machine::from_str("[..#.###] (0,3,4,5,6) (1,3,4,5) (2,3) (0,2,3,5) (1,2,5,6) (0,1,2,3,5,6) (0,2,3,4,6) (1,6) {28,59,60,61,23,64,46}").unwrap();
+
+        // let p2 = m.gauss_elimination_solve().unwrap_or(0);
 
     // for m in machines.iter() {
     // let m = Machine::from_str("[..##.] (0,2) (1) (4) (0,4) (1,4) (2,3) {26,8,209,200,25}").unwrap();
@@ -430,7 +556,7 @@ pub fn solve(input: &str) -> Solution {
     // }
     // let p1 = 0;
     let p1 = machines.iter().map(|m| m.minimum_required_button_presses()).sum::<usize>();
-    let p2 = machines.iter().map(|m| m.minimum_required_button_presses_pt2()).sum::<u32>();
+    let p2 = machines.iter().map(|m| m.minimum_required_button_presses_pt2()).sum::<i32>();
     // let p2 = machines.iter().map(|m| m.minimum_required_button_presses_pt2()).sum::<usize>();
     
 
