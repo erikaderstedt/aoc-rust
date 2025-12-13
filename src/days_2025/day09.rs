@@ -20,17 +20,21 @@ pub fn solve(input: &str) -> Solution {
             .collect();
 
     let p1: i64 = rectangles.iter().map(|r| r.area()).max().unwrap();
+    let green_lines: Vec<GreenLine> = red_tiles.iter()
+        .circular_tuple_windows()
+        .map(|(p, q)| GreenLine { x_low: p.x.min(q.x), x_high: p.x.max(q.x), y_low: p.y.min(q.y), y_high: p.y.max(q.y)})
+        .collect();
 
     let mut p2 = 0;
     for r in rectangles.iter() {
         let a = r.area();
         if a > p2 && 
             // Check that no green line runs in the interior of r
-            red_tiles.iter().circular_tuple_windows().all(|(p, q)|                    
-                r.x0 >= p.x.max(q.x) || // Green line is to the left of r (or on its edge)
-                r.x1 <= p.x.min(q.x) || // Green line is to the right of r (or on its edge)
-                r.y0 >= p.y.max(q.y) || // Green line is above r (or on its edge)
-                r.y1 <= p.y.min(q.y)) {   // Green line is below r (or on its edge)
+            green_lines.iter().all(|line|                    
+                r.x0 >= line.x_high || // Green line is to the left of r (or on its edge)
+                r.x1 <= line.x_low || // Green line is to the right of r (or on its edge)
+                r.y0 >= line.y_high || // Green line is above r (or on its edge)
+                r.y1 <= line.y_low) {   // Green line is below r (or on its edge)
             p2 = a;
         }
     }
@@ -48,6 +52,13 @@ struct Rectangle {
     y0: i64,
     x1: i64,
     y1: i64
+}
+
+struct GreenLine {
+    x_low: i64,
+    x_high: i64,
+    y_low: i64,
+    y_high: i64
 }
 
 impl Rectangle {
