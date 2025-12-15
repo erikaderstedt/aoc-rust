@@ -22,7 +22,7 @@ pub fn solve(input: &str) -> Solution {
             grid.set(r, Floor::Empty);
         }
         remove_these.len()
-    }).collect();
+    }).take_while(|&i| i > 0).collect();
 
     let p1 = removed[0];
     let p2 = removed.into_iter().sum::<usize>();

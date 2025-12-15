@@ -2,22 +2,22 @@
 
 Challenged myself to do the 2020 edition of Advent of Code in Rust. Someone implemented the full 2019 season in Rust with a total running time of just 45 ms. I was wrecked by day 15 in 2020 (and also days 17, 23, 24, 25) so the total running time was 1.28 s (single core). 
 
-Did better in 2021, 2022, 2023, 2024 at 288 ms, 350 ms, 465 ms and 428 ms respectively. 2025 was only twelve days but I'm still happy about the time (48 ms total), and especially my own Gauss elimination solver for day 10 part 2.
+Did better in 2021, 2022, 2023, 2024 at 288 ms, 350 ms, 465 ms and 428 ms respectively. 2025 was only twelve days but I'm still happy about the time (43.6 ms total), and especially my own Gauss elimination solver for day 10 part 2.
 
 ## 2025
-    [Day  1] A: 989               B: 5941                                               Elapsed time:     155 µs
-    [Day  2] A: 15873079081       B: 22617871034                                        Elapsed time:     353 µs
-    [Day  3] A: 17166             B: 169077317650774                                    Elapsed time:     240 µs
-    [Day  4] A: 1393              B: 8643                                               Elapsed time:   17882 µs
-    [Day  5] A: 828               B: 352681648086146                                    Elapsed time:     153 µs
-    [Day  6] A: 4387670995909     B: 9625320374409                                      Elapsed time:    2752 µs
+    [Day  1] A: 989               B: 5941                                               Elapsed time:     136 µs
+    [Day  2] A: 15873079081       B: 22617871034                                        Elapsed time:     273 µs
+    [Day  3] A: 17166             B: 169077317650774                                    Elapsed time:     219 µs
+    [Day  4] A: 1393              B: 8643                                               Elapsed time:   14094 µs
+    [Day  5] A: 828               B: 352681648086146                                    Elapsed time:     175 µs
+    [Day  6] A: 4387670995909     B: 9625320374409                                      Elapsed time:    5229 µs
     [Day  7] A: 1533              B: 10733529153890                                     Elapsed time:      45 µs
-    [Day  8] A: 115885            B: 274150525                                          Elapsed time:    2041 µs
-    [Day  9] A: 4781377701        B: 1470616992                                         Elapsed time:   18206 µs
-    [Day 10] A: 486               B: 17820                                              Elapsed time:    5800 µs
-    [Day 11] A: 714               B: 333852915427200                                    Elapsed time:     355 µs
-    [Day 12] A: 457               B: 0                                                  Elapsed time:     178 µs
-    Total elapsed time (generation + p1 + p2): 48.166124ms
+    [Day  8] A: 115885            B: 274150525                                          Elapsed time:    3435 µs
+    [Day  9] A: 4781377701        B: 1470616992                                         Elapsed time:   12414 µs
+    [Day 10] A: 486               B: 17820                                              Elapsed time:    7009 µs
+    [Day 11] A: 714               B: 333852915427200                                    Elapsed time:     389 µs
+    [Day 12] A: 457               B: 0                                                  Elapsed time:     188 µs
+    Total elapsed time (generation + p1 + p2): 43.612999ms
 
 ## 2024
     [Day  1] A: 3569916           B: 26407426                                           Elapsed time:     474 µs
