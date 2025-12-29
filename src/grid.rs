@@ -306,6 +306,18 @@ impl<T: GridElement> Grid<T> {
             max_row: self.rows,
         }
     }
+    #[allow(dead_code)]
+    pub fn indices_matching<F>(&self, check: F) -> Vec<usize>
+    where
+        F: Fn(&T) -> bool,
+    {
+        self.locations
+            .iter()
+            .enumerate()
+            .filter(|(_, element)| check(element))
+            .map(|(index, _)| index)
+            .collect()
+    }
 
     #[allow(dead_code)]
     pub fn positions_going_inward(&self) -> InwardGridIterator {
