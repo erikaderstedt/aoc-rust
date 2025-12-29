@@ -58,87 +58,49 @@ impl Opcode {
 }
 
 impl Sample {
-    fn match_instr<F>(&self, h: &mut HashSet<Opcode>, f: F, opcode_r: Opcode, opcode_i: Opcode)
+    fn apply_ri<F>(&self, f: F, h: &mut HashSet<Opcode>, opcode: Opcode)
     where
         F: Fn(usize, usize) -> usize,
     {
-        if self.input_a < 4
-            && self.input_b < 4
-            && self.output < 4
-            && f(self.before[self.input_a], self.before[self.input_b]) == self.after[self.output]
-        {
-            h.insert(opcode_r);
-        }
-        if self.input_a < 4
-            && self.output < 4
-            && f(self.before[self.input_a], self.input_b) == self.after[self.output]
-        {
-            h.insert(opcode_i);
+        if f(self.before[self.input_a], self.input_b) == self.after[self.output] {
+            h.insert(opcode);
         }
     }
-
+    fn apply_rr<F>(&self, f: F, h: &mut HashSet<Opcode>, opcode: Opcode)
+    where
+        F: Fn(usize, usize) -> usize,
+    {
+        if f(self.before[self.input_a], self.before[self.input_b]) == self.after[self.output] {
+            h.insert(opcode);
+        }
+    }
+    fn apply_ir<F>(&self, f: F, h: &mut HashSet<Opcode>, opcode: Opcode)
+    where
+        F: Fn(usize, usize) -> usize,
+    {
+        if f(self.input_a, self.before[self.input_b]) == self.after[self.output] {
+            h.insert(opcode);
+        }
+    }
     fn matches_opcodes(&self) -> HashSet<Opcode> {
         let mut h = HashSet::new();
-        self.match_instr(&mut h, |a, b| a + b, Opcode::Addr, Opcode::Addi);
-        self.match_instr(&mut h, |a, b| a * b, Opcode::Mulr, Opcode::Muli);
-        self.match_instr(&mut h, |a, b| a & b, Opcode::Banr, Opcode::Bani);
-        self.match_instr(&mut h, |a, b| a | b, Opcode::Borr, Opcode::Bori);
-        self.match_instr(&mut h, |a, b| a * b, Opcode::Mulr, Opcode::Muli);
-        self.match_instr(&mut h, |a, b| a * b, Opcode::Mulr, Opcode::Muli);
-        if self.input_a < 4
-            && self.output < 4
-            && self.before[self.input_a] == self.after[self.output]
-        {
-            h.insert(Opcode::Setr);
-        }
-        if self.output < 4 && self.input_a == self.after[self.output] {
-            h.insert(Opcode::Seti);
-        }
-        self.match_instr(
-            &mut h,
-            |a, b| {
-                if a > b {
-                    1
-                } else {
-                    0
-                }
-            },
-            Opcode::Gtrr,
-            Opcode::Gtri,
-        );
-        self.match_instr(
-            &mut h,
-            |a, b| {
-                if a == b {
-                    1
-                } else {
-                    0
-                }
-            },
-            Opcode::Eqrr,
-            Opcode::Eqri,
-        );
+        self.apply_ri(|a, b| a + b, &mut h, Opcode::Addi);
+        self.apply_rr(|a, b| a + b, &mut h, Opcode::Addr);
+        self.apply_ri(|a, b| a * b, &mut h, Opcode::Muli);
+        self.apply_rr(|a, b| a * b, &mut h, Opcode::Mulr);
+        self.apply_ri(|a, b| a & b, &mut h, Opcode::Bani);
+        self.apply_rr(|a, b| a & b, &mut h, Opcode::Banr);
+        self.apply_ri(|a, b| a | b, &mut h, Opcode::Bori);
+        self.apply_rr(|a, b| a | b, &mut h, Opcode::Borr);
 
-        if self.input_b < 4
-            && self.output < 4
-            && if self.input_a == self.before[self.input_b] {
-                1
-            } else {
-                0
-            } == self.after[self.output]
-        {
-            h.insert(Opcode::Eqir);
-        }
-        if self.input_b < 4
-            && self.output < 4
-            && if self.input_a > self.before[self.input_b] {
-                1
-            } else {
-                0
-            } == self.after[self.output]
-        {
-            h.insert(Opcode::Gtir);
-        }
+        self.apply_ri(|a, _| a, &mut h, Opcode::Setr);
+        self.apply_ir(|a, _| a, &mut h, Opcode::Seti);
+        self.apply_ir(|a, b| if a > b { 1 } else { 0 }, &mut h, Opcode::Gtir);
+        self.apply_ri(|a, b| if a > b { 1 } else { 0 }, &mut h, Opcode::Gtri);
+        self.apply_rr(|a, b| if a > b { 1 } else { 0 }, &mut h, Opcode::Gtrr);
+        self.apply_ir(|a, b| if a == b { 1 } else { 0 }, &mut h, Opcode::Eqir);
+        self.apply_ri(|a, b| if a == b { 1 } else { 0 }, &mut h, Opcode::Eqri);
+        self.apply_rr(|a, b| if a == b { 1 } else { 0 }, &mut h, Opcode::Eqrr);
 
         h
     }
@@ -147,15 +109,12 @@ impl Sample {
 pub fn solve(input: &str) -> Solution {
     let blocks: Vec<&str> = input.split("\n\n").collect();
     let num_samples = blocks.len() - 2;
-    let samples: Vec<Sample> = blocks
+
+    let possible_opcodes: Vec<(usize, HashSet<Opcode>)> = blocks
         .iter()
         .take(num_samples)
         .map(|s| Sample::from(s))
-        .collect();
-
-    let possible_opcodes: Vec<(usize, HashSet<Opcode>)> = samples
-        .iter()
-        .map(|s| (s.op_code, s.matches_opcodes()))
+        .map(|sample| (sample.op_code, sample.matches_opcodes()))
         .collect();
 
     let p1 = possible_opcodes
