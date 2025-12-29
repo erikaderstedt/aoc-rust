@@ -306,6 +306,7 @@ impl<T: GridElement> Grid<T> {
             max_row: self.rows,
         }
     }
+
     #[allow(dead_code)]
     pub fn indices_matching<F>(&self, check: F) -> Vec<usize>
     where
@@ -317,6 +318,12 @@ impl<T: GridElement> Grid<T> {
             .filter(|(_, element)| check(element))
             .map(|(index, _)| index)
             .collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn indices_are_adjacent(&self, i1: usize, i2: usize) -> bool {
+        // Both i1 and i2 must be interior indices
+        i1 - 1 == i2 || i1 + 1 == i2 || i1 + self.cols == i2 || i1 - self.cols == i2
     }
 
     #[allow(dead_code)]

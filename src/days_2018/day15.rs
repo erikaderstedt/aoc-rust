@@ -23,7 +23,6 @@ where
         return Some(start_index);
     }
 
-    // let (row, col) = start_index.div_rem_euclid(&cols);
     let mut travel = vec![0u8; arena.rows * cols];
     let mut d = 1;
     // Fill with edge of most recent.
@@ -83,15 +82,13 @@ fn combat(arena: &mut Grid<Arena>, elf_attack_power: &u8, stop_if_elf_dies: bool
             }
 
             // Is any in range?
-            if !opponent_indices.iter().any(|&p| {
-                actor_index - 1 == p
-                    || actor_index + 1 == p
-                    || actor_index - cols == p
-                    || actor_index + cols == p
-            }) {
+            if !opponent_indices
+                .iter()
+                .any(|&p| arena.indices_are_adjacent(actor_index, p))
+            {
                 // If no, move
                 // Search for an index that is adjacent to an enemy.
-                if let Some(destination_index) = flood_search(actor_index, arena, |index| {
+                if let Some(dest) = flood_search(actor_index, arena, |index| {
                     arena.locations[index - 1].is_enemy(is_elf)
                         || arena.locations[index + 1].is_enemy(is_elf)
                         || arena.locations[index - cols].is_enemy(is_elf)
@@ -99,14 +96,9 @@ fn combat(arena: &mut Grid<Arena>, elf_attack_power: &u8, stop_if_elf_dies: bool
                 }) {
                     // Search from that spot to an index adjacent to the actor. This is to ensure we step
                     // to the first step on the correct path.
-                    if let Some(index_to_move_to) =
-                        flood_search(destination_index, arena, |index| {
-                            index - 1 == actor_index
-                                || index + 1 == actor_index
-                                || index - cols == actor_index
-                                || index + cols == actor_index
-                        })
-                    {
+                    if let Some(index_to_move_to) = flood_search(dest, arena, |index| {
+                        arena.indices_are_adjacent(index, actor_index)
+                    }) {
                         // Perform move
                         arena.locations[index_to_move_to] = arena.locations[actor_index].clone();
                         arena.locations[actor_index] = Arena::Floor;
@@ -117,13 +109,8 @@ fn combat(arena: &mut Grid<Arena>, elf_attack_power: &u8, stop_if_elf_dies: bool
             // Is any in range now after moving?
             if let Some(weakest_adjacent_enemy) = opponent_indices
                 .into_iter()
-                .filter(|&p| {
-                    actor_index - 1 == p
-                        || actor_index + 1 == p
-                        || actor_index - cols == p
-                        || actor_index + cols == p
-                })
-                .sorted_by_key(|p| arena.locations[*p].hp())
+                .filter(|&p| arena.indices_are_adjacent(actor_index, p))
+                .sorted_by_key(|&p| arena.locations[p].hp())
                 .next()
             {
                 // If yes, then attack
