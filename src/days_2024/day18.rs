@@ -11,19 +11,6 @@ use crate::{
 const SZ: usize = 71;
 const FIRST_PART: usize = 1024;
 
-impl GridElement for bool {
-    fn from_char(_: &char) -> Option<Self> {
-        None
-    }
-
-    fn to_char(&self) -> char {
-        match self {
-            false => '.',
-            true => '#',
-        }
-    }
-}
-
 pub fn solve(input: &str) -> Solution {
     let mut corrupted: Grid<bool> = Grid {
         rows: SZ,

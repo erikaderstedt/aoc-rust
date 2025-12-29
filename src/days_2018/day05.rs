@@ -1,34 +1,57 @@
 use crate::common::Solution;
 
-const DIFF: u8 = 97-65;
-fn react(b: &mut Vec<u8>) {
-    let mut i = 0;
-    while i < b.len() - 1 {
-        if b[i] + DIFF == b[i+1] || b[i] == b[i+1] + DIFF {
-            b.remove(i);
-            b.remove(i);
-            if i > 0 {
-                i -= 1;
+const DIFF: u8 = 97 - 65;
+fn react(b: &Vec<u8>) -> usize {
+    let mut src_index0 = 0;
+    let mut num_deleted = 0;
+    let mut deleted = vec![false; b.len()];
+
+    while src_index0 < b.len() {
+        let mut src_index1 = src_index0 + 1;
+        while src_index1 < b.len() && deleted[src_index1] {
+            src_index1 = src_index1 + 1;
+        }
+
+        if src_index1 < b.len() && b[src_index0].abs_diff(b[src_index1]) == DIFF {
+            deleted[src_index0] = true;
+            deleted[src_index1] = true;
+            num_deleted = num_deleted + 2;
+            // Go back from src_index0 to find a not deleted.
+            while deleted[src_index0] && src_index0 > 0 {
+                src_index0 = src_index0 - 1;
+            }
+            // If not found, go forward to find first not deleted
+            if deleted[src_index0] {
+                while deleted[src_index0] && src_index0 < b.len() - 1 {
+                    src_index0 = src_index0 + 1;
+                }
             }
         } else {
-            i += 1;
+            src_index0 = src_index1;
         }
     }
+    b.len() - num_deleted
 }
 
-pub fn solve(input: &str) -> Solution { 
-
+pub fn solve(input: &str) -> Solution {
     let p1 = {
-        let mut i2 = input.as_bytes().to_vec();
-        react(&mut i2);
-        i2.len() - 1
+        let i2 = input.trim().as_bytes().to_vec();
+        react(&i2)
     };
 
-    let p2 = ('A'..='Z').map(|r| -> usize {
-        let mut i2 = input.as_bytes().iter().filter(|&v| *v != (r as u8) && *v != (r as u8) + DIFF).cloned().collect();
-        react(&mut i2);
-        i2.len()
-    }).min().unwrap() - 1;
+    let p2 = ('A'..='Z')
+        .map(|r| -> usize {
+            let mut i2 = input
+                .trim()
+                .as_bytes()
+                .iter()
+                .filter(|&v| *v != (r as u8) && *v != (r as u8) + DIFF)
+                .cloned()
+                .collect();
+            react(&mut i2)
+        })
+        .min()
+        .unwrap();
 
     Solution::new(p1, p2)
 }

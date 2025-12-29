@@ -1,46 +1,108 @@
 // https://adventofcode.com/2018/day/7
 
-
 use crate::common::Solution;
-// use itertools::Itertools; 
 
-// const NUM_WORKERS = 5;
+const NUM_WORKERS: usize = 5;
+const STEP_DURATION_MIN: usize = 60;
+const INDEPENDENT: u32 = 1u32 << 31;
+
+fn sequence(mut requirements: [u32; 26]) -> String {
+    let mut m1: Vec<char> = Vec::new();
+    while requirements.iter().any(|&v| v > 0) {
+        let next_step = requirements.iter().position(|&v| v == INDEPENDENT).unwrap() as u8;
+        for m in requirements.iter_mut() {
+            *m &= !(1u32 << next_step);
+        }
+        m1.push((next_step + ('A' as u8)) as char);
+        requirements[next_step as usize] &= 0x7fffffff;
+    }
+
+    m1.into_iter().collect()
+}
+
+type WorkItem = usize;
+
+#[derive(Debug, Copy, Clone)]
+struct AssignedTask {
+    minutes_left: usize,
+    item: WorkItem,
+}
+
+impl AssignedTask {
+    fn start(item: WorkItem) -> AssignedTask {
+        AssignedTask {
+            minutes_left: item + STEP_DURATION_MIN,
+            item: item,
+        }
+    }
+    fn worked(&self) -> AssignedTask {
+        AssignedTask {
+            minutes_left: self.minutes_left - 1,
+            item: self.item,
+        }
+    }
+
+    fn is_completed(&self) -> bool {
+        self.minutes_left == 0
+    }
+}
 
 pub fn solve(input: &str) -> Solution {
-    let mut dependencies = vec![1u32 << 31;26];
+    let mut requirements = [INDEPENDENT; 26];
 
     for line in input.lines() {
         let must_be_finished = line.as_bytes()[5] - ('A' as u8);
         let can_begin = line.as_bytes()[36] - ('A' as u8);
-        dependencies[can_begin as usize] |= 1 << must_be_finished;
+        requirements[can_begin as usize] |= 1 << must_be_finished;
     }
 
-    let mut m1: Vec<char> = Vec::new();
-    while dependencies.iter().any(|&v| v > 0) {
-        let next_step = dependencies.iter().position(|&v| v == 0x80000000).unwrap() as u8;
-        for m in dependencies.iter_mut() {
-            *m &= !(1u32 << next_step);
+    let p1 = sequence(requirements.clone());
+
+    let mut workers: [Option<AssignedTask>; NUM_WORKERS] = [None; NUM_WORKERS];
+    let mut task_queue: Vec<WorkItem> = requirements
+        .iter()
+        .enumerate()
+        .filter(|v| *(v.1) == INDEPENDENT)
+        .map(|v| v.0)
+        .collect();
+    let mut p2 = 0;
+    let mut completed_tasks = 0;
+
+    while completed_tasks < 26 && p2 < 1000 {
+        for worker in workers.iter_mut() {
+            match *worker {
+                Some(w) if !w.is_completed() => *worker = Some(w.worked()),
+                Some(w) => {
+                    // Check requirements to see which tasks to push on the queue.
+                    completed_tasks = completed_tasks + 1;
+                    for (i, r) in requirements.iter_mut().enumerate() {
+                        if (*r & (1 << w.item)) > 0 {
+                            *r ^= 1 << w.item;
+                            if *r == INDEPENDENT {
+                                task_queue.push(i);
+                            }
+                        }
+                    }
+                    *worker = None;
+                }
+                None => {}
+            }
         }
-        m1.push((next_step + ('A' as u8)) as char);
-        dependencies[next_step as usize] &= 0x7fffffff;
+        for worker in workers.iter_mut() {
+            match worker {
+                None => {
+                    *worker = match task_queue.pop() {
+                        Some(available_task) => Some(AssignedTask::start(available_task)),
+                        None => None,
+                    };
+                }
+                _ => {}
+            }
+        }
+        p2 = p2 + 1;
     }
-    let part_1: String = m1.into_iter().collect();
-    println!("{:?}", dependencies);
-    // let precursors:u32 = dependencies.iter().fold(0u32, |a, b| a | (*b));
-    // let all_used = dependencies.iter().enumerate().fold(precursors, |a, (i,b)| if (*b) > 0 { a | (1u32 << i) } else { a } );
-    // let expected_results = all_used.count_ones() as usize;
 
-    // let mut output: Vec<char> = vec![];
-    // while output.len() < expected_results {
-    //     // Grab the first zero element in dependencies which is also in all_used.
+    p2 = p2 - 1;
 
-    //     // Set the corresponding bit in dependencies to zero.
-    // }
-
-    // for (i, v) in dependencies.iter().enumerate() {
-    //     println!("{}, {:026b}", ((i as u8) + 65) as char, v);
-    // }
-    // println!("{:026b}", all_used);
-
-    Solution { part_1, part_2: "".to_string() }
+    Solution::new(p1, p2)
 }
