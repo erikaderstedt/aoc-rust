@@ -6,10 +6,15 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum Direction {
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Maze {
     Floor,
-    VerticalDoor,
-    HorizontalDoor,
+    Door(Direction),
     Wall,
     Start,
 }
@@ -21,8 +26,8 @@ impl GridElement for Maze {
 
     fn to_char(&self) -> char {
         match self {
-            Maze::VerticalDoor => '|',
-            Maze::HorizontalDoor => '-',
+            Maze::Door(Direction::Horizontal) => '-',
+            Maze::Door(Direction::Vertical) => '|',
             Maze::Floor => '.',
             Maze::Wall => '#',
             Maze::Start => 'X',
@@ -52,25 +57,25 @@ pub fn solve(input: &str) -> Solution {
             '^' => continue,
             'N' => {
                 p.row = p.row - 1;
-                maze.set(&p, Maze::HorizontalDoor);
+                maze.set(&p, Maze::Door(Direction::Horizontal));
                 p.row = p.row - 1;
                 maze.set(&p, Maze::Floor);
             }
             'S' => {
                 p.row = p.row + 1;
-                maze.set(&p, Maze::HorizontalDoor);
+                maze.set(&p, Maze::Door(Direction::Horizontal));
                 p.row = p.row + 1;
                 maze.set(&p, Maze::Floor);
             }
             'E' => {
                 p.column = p.column + 1;
-                maze.set(&p, Maze::VerticalDoor);
+                maze.set(&p, Maze::Door(Direction::Vertical));
                 p.column = p.column + 1;
                 maze.set(&p, Maze::Floor);
             }
             'W' => {
                 p.column = p.column - 1;
-                maze.set(&p, Maze::VerticalDoor);
+                maze.set(&p, Maze::Door(Direction::Vertical));
                 p.column = p.column - 1;
                 maze.set(&p, Maze::Floor);
             }
@@ -102,11 +107,7 @@ pub fn solve(input: &str) -> Solution {
                     fill[neighbor] = fill[index];
                     positions_to_check.push(neighbor);
                 }
-                Maze::HorizontalDoor if fill[neighbor] == 0 || fill[neighbor] > fill[index] + 1 => {
-                    fill[neighbor] = fill[index] + 1;
-                    positions_to_check.push(neighbor);
-                }
-                Maze::VerticalDoor if fill[neighbor] == 0 || fill[neighbor] > fill[index] + 1 => {
+                Maze::Door(_) if fill[neighbor] == 0 || fill[neighbor] > fill[index] + 1 => {
                     fill[neighbor] = fill[index] + 1;
                     positions_to_check.push(neighbor);
                 }

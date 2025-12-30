@@ -1,25 +1,6 @@
 // https://adventofcode.com/2018/day/19
 
-use crate::common::Solution;
-use itertools::Itertools;
-
-enum Operation {
-    Addi,
-    Addr,
-    Eqrr,
-    Gtrr,
-    Muli,
-    Mulr,
-    Seti,
-    Setr,
-}
-
-struct Instruction {
-    op: Operation,
-    a: usize,
-    b: usize,
-    out: usize,
-}
+use crate::{common::Solution, days_2018::operation::Instruction};
 
 fn run_program(
     instructions: &Vec<Instruction>,
@@ -32,30 +13,8 @@ fn run_program(
     for _ in 0..100 {
         // This is enough to get the target number into a register.
         registers[ip_register] = ip;
-        let i = &instructions[ip];
+        instructions[ip].execute(&mut registers);
 
-        match i.op {
-            Operation::Addi => registers[i.out] = registers[i.a] + i.b,
-            Operation::Addr => registers[i.out] = registers[i.a] + registers[i.b],
-            Operation::Muli => registers[i.out] = registers[i.a] * i.b,
-            Operation::Mulr => registers[i.out] = registers[i.a] * registers[i.b],
-            Operation::Eqrr => {
-                registers[i.out] = if registers[i.a] == registers[i.b] {
-                    1
-                } else {
-                    0
-                }
-            }
-            Operation::Gtrr => {
-                registers[i.out] = if registers[i.a] > registers[i.b] {
-                    1
-                } else {
-                    0
-                }
-            }
-            Operation::Seti => registers[i.out] = i.a,
-            Operation::Setr => registers[i.out] = registers[i.a],
-        }
         ip = registers[ip_register] + 1;
     }
     // The program is trying to find the sum of all factors of a number (not just all prime factors)
@@ -74,35 +33,7 @@ fn run_program(
 }
 
 pub fn solve(input: &str) -> Solution {
-    let (first_line, rest) = input.split_once("\n").unwrap();
-    let ip_register = first_line
-        .split(' ')
-        .skip(1)
-        .map(|s| s.parse::<usize>().unwrap())
-        .next()
-        .unwrap();
-
-    let instructions: Vec<Instruction> = rest
-        .lines()
-        .map(|s| {
-            let (op, a, b, out) = s.split(' ').collect_tuple().unwrap();
-            let op = match op {
-                "addi" => Operation::Addi,
-                "addr" => Operation::Addr,
-                "muli" => Operation::Muli,
-                "mulr" => Operation::Mulr,
-                "seti" => Operation::Seti,
-                "setr" => Operation::Setr,
-                "gtrr" => Operation::Gtrr,
-                "eqrr" => Operation::Eqrr,
-                _ => panic!("Unknown instruction"),
-            };
-            let a = a.parse::<usize>().unwrap();
-            let b = b.parse::<usize>().unwrap();
-            let out = out.parse::<usize>().unwrap();
-            Instruction { op, a, b, out }
-        })
-        .collect();
+    let (ip_register, instructions) = Instruction::parse_program(input);
 
     let p1 = run_program(&instructions, 0, ip_register);
     let p2 = run_program(&instructions, 1, ip_register);

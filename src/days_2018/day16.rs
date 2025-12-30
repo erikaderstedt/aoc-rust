@@ -1,6 +1,7 @@
 // https://adventofcode.com/2018/day/16
 
 use crate::common::Solution;
+use crate::days_2018::operation::{Instruction, Operation};
 use itertools::Itertools;
 use std::collections::HashSet;
 
@@ -14,51 +15,8 @@ struct Sample {
     after: [usize; 4],
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-enum Opcode {
-    Addr,
-    Addi,
-    Mulr,
-    Muli,
-    Banr,
-    Bani,
-    Borr,
-    Bori,
-    Setr,
-    Seti,
-    Gtir,
-    Gtri,
-    Gtrr,
-    Eqir,
-    Eqri,
-    Eqrr,
-}
-
-impl Opcode {
-    fn process(&self, input_a: usize, input_b: usize, output: usize, data: &mut [usize; 4]) {
-        match self {
-            Opcode::Addi => data[output] = data[input_a] + input_b,
-            Opcode::Addr => data[output] = data[input_a] + data[input_b],
-            Opcode::Muli => data[output] = data[input_a] * input_b,
-            Opcode::Mulr => data[output] = data[input_a] * data[input_b],
-            Opcode::Bani => data[output] = data[input_a] & input_b,
-            Opcode::Banr => data[output] = data[input_a] & data[input_b],
-            Opcode::Bori => data[output] = data[input_a] | input_b,
-            Opcode::Borr => data[output] = data[input_a] | data[input_b],
-            Opcode::Eqir => data[output] = if input_a == data[input_b] { 1 } else { 0 },
-            Opcode::Eqri => data[output] = if data[input_a] == input_b { 1 } else { 0 },
-            Opcode::Eqrr => data[output] = if data[input_a] == data[input_b] { 1 } else { 0 },
-            Opcode::Gtir => data[output] = if input_a > data[input_b] { 1 } else { 0 },
-            Opcode::Gtri => data[output] = if data[input_a] > input_b { 1 } else { 0 },
-            Opcode::Gtrr => data[output] = if data[input_a] > data[input_b] { 1 } else { 0 },
-            Opcode::Setr => data[output] = data[input_a],
-            Opcode::Seti => data[output] = input_a,
-        }
-    }
-}
-
 impl Sample {
-    fn apply_ri<F>(&self, f: F, h: &mut HashSet<Opcode>, opcode: Opcode)
+    fn apply_ri<F>(&self, f: F, h: &mut HashSet<Operation>, opcode: Operation)
     where
         F: Fn(usize, usize) -> usize,
     {
@@ -66,7 +24,7 @@ impl Sample {
             h.insert(opcode);
         }
     }
-    fn apply_rr<F>(&self, f: F, h: &mut HashSet<Opcode>, opcode: Opcode)
+    fn apply_rr<F>(&self, f: F, h: &mut HashSet<Operation>, opcode: Operation)
     where
         F: Fn(usize, usize) -> usize,
     {
@@ -74,7 +32,7 @@ impl Sample {
             h.insert(opcode);
         }
     }
-    fn apply_ir<F>(&self, f: F, h: &mut HashSet<Opcode>, opcode: Opcode)
+    fn apply_ir<F>(&self, f: F, h: &mut HashSet<Operation>, opcode: Operation)
     where
         F: Fn(usize, usize) -> usize,
     {
@@ -82,25 +40,25 @@ impl Sample {
             h.insert(opcode);
         }
     }
-    fn matches_opcodes(&self) -> HashSet<Opcode> {
+    fn matches_opcodes(&self) -> HashSet<Operation> {
         let mut h = HashSet::new();
-        self.apply_ri(|a, b| a + b, &mut h, Opcode::Addi);
-        self.apply_rr(|a, b| a + b, &mut h, Opcode::Addr);
-        self.apply_ri(|a, b| a * b, &mut h, Opcode::Muli);
-        self.apply_rr(|a, b| a * b, &mut h, Opcode::Mulr);
-        self.apply_ri(|a, b| a & b, &mut h, Opcode::Bani);
-        self.apply_rr(|a, b| a & b, &mut h, Opcode::Banr);
-        self.apply_ri(|a, b| a | b, &mut h, Opcode::Bori);
-        self.apply_rr(|a, b| a | b, &mut h, Opcode::Borr);
+        self.apply_ri(|a, b| a + b, &mut h, Operation::Addi);
+        self.apply_rr(|a, b| a + b, &mut h, Operation::Addr);
+        self.apply_ri(|a, b| a * b, &mut h, Operation::Muli);
+        self.apply_rr(|a, b| a * b, &mut h, Operation::Mulr);
+        self.apply_ri(|a, b| a & b, &mut h, Operation::Bani);
+        self.apply_rr(|a, b| a & b, &mut h, Operation::Banr);
+        self.apply_ri(|a, b| a | b, &mut h, Operation::Bori);
+        self.apply_rr(|a, b| a | b, &mut h, Operation::Borr);
 
-        self.apply_ri(|a, _| a, &mut h, Opcode::Setr);
-        self.apply_ir(|a, _| a, &mut h, Opcode::Seti);
-        self.apply_ir(|a, b| if a > b { 1 } else { 0 }, &mut h, Opcode::Gtir);
-        self.apply_ri(|a, b| if a > b { 1 } else { 0 }, &mut h, Opcode::Gtri);
-        self.apply_rr(|a, b| if a > b { 1 } else { 0 }, &mut h, Opcode::Gtrr);
-        self.apply_ir(|a, b| if a == b { 1 } else { 0 }, &mut h, Opcode::Eqir);
-        self.apply_ri(|a, b| if a == b { 1 } else { 0 }, &mut h, Opcode::Eqri);
-        self.apply_rr(|a, b| if a == b { 1 } else { 0 }, &mut h, Opcode::Eqrr);
+        self.apply_ri(|a, _| a, &mut h, Operation::Setr);
+        self.apply_ir(|a, _| a, &mut h, Operation::Seti);
+        self.apply_ir(|a, b| if a > b { 1 } else { 0 }, &mut h, Operation::Gtir);
+        self.apply_ri(|a, b| if a > b { 1 } else { 0 }, &mut h, Operation::Gtri);
+        self.apply_rr(|a, b| if a > b { 1 } else { 0 }, &mut h, Operation::Gtrr);
+        self.apply_ir(|a, b| if a == b { 1 } else { 0 }, &mut h, Operation::Eqir);
+        self.apply_ri(|a, b| if a == b { 1 } else { 0 }, &mut h, Operation::Eqri);
+        self.apply_rr(|a, b| if a == b { 1 } else { 0 }, &mut h, Operation::Eqrr);
 
         h
     }
@@ -110,7 +68,7 @@ pub fn solve(input: &str) -> Solution {
     let blocks: Vec<&str> = input.split("\n\n").collect();
     let num_samples = blocks.len() - 2;
 
-    let possible_opcodes: Vec<(usize, HashSet<Opcode>)> = blocks
+    let possible_opcodes: Vec<(usize, HashSet<Operation>)> = blocks
         .iter()
         .take(num_samples)
         .map(|s| Sample::from(s))
@@ -122,7 +80,7 @@ pub fn solve(input: &str) -> Solution {
         .filter(|(_, h)| h.len() >= 3)
         .count();
 
-    let mut opcodes: [Option<Opcode>; 16] = [None; 16];
+    let mut opcodes: [Option<Operation>; 16] = [None; 16];
 
     while opcodes.iter().any(|p| p.is_none()) {
         for i in 0..16 {
@@ -155,7 +113,13 @@ pub fn solve(input: &str) -> Solution {
             .unwrap()
     }) {
         let op = opcodes[opcode_index].unwrap();
-        op.process(input_a, input_b, output, &mut regs);
+        let instruction = Instruction {
+            op,
+            a: input_a,
+            b: input_b,
+            out: output,
+        };
+        instruction.execute(&mut regs);
     }
     let p2 = regs[0];
 
