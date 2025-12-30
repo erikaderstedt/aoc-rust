@@ -44,6 +44,8 @@ pub fn solve(input: &str) -> Solution {
         .next()
         .unwrap();
     let mut seen = vec![0];
+    // When the loop starts to repeat we will never halt.
+    // The last non-repeating value is the longest we can go for and still halt.
     let p2 = loop {
         let value = next(seen.last().unwrap().clone(), constant);
         if seen.contains(&value) {
