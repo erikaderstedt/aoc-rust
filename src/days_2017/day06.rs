@@ -5,16 +5,16 @@ use itertools::Itertools;
 use crate::common::Solution;
 
 pub fn solve(input: &str) -> Solution {
-    let mut banks: [u8;16] = input
+    let mut banks: [u8; 16] = input
         .split_ascii_whitespace()
         .map(|s| s.parse::<u8>().unwrap())
         .collect_array()
         .unwrap();
 
-    let mut seen: Vec<[u8;16]> = vec![];
+    let mut seen: Vec<[u8; 16]> = vec![];
 
     let mut p1 = 0;
-    loop {        
+    loop {
         let mut redistribute = banks.len() - 1 - banks.iter().rev().position_max().unwrap();
         let mut how_many = banks[redistribute];
         banks[redistribute] = 0;
@@ -34,5 +34,5 @@ pub fn solve(input: &str) -> Solution {
     }
     let p2 = seen.len() - seen.iter().position(|p| *p == banks).unwrap();
 
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }

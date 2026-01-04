@@ -11,7 +11,7 @@ fn execute(instructions: &Vec<i64>, decrease_if_three_or_more: bool) -> usize {
         let v = instructions[ip];
 
         if decrease_if_three_or_more && v >= 3 {
-            instructions[ip] -= 1;            
+            instructions[ip] -= 1;
         } else {
             instructions[ip] += 1;
         }
@@ -27,7 +27,7 @@ fn execute(instructions: &Vec<i64>, decrease_if_three_or_more: bool) -> usize {
 }
 
 pub fn solve(input: &str) -> Solution {
-    let  instructions: Vec<i64> = input
+    let instructions: Vec<i64> = input
         .lines()
         .map(|line| line.parse::<i64>().unwrap())
         .collect();
@@ -35,5 +35,5 @@ pub fn solve(input: &str) -> Solution {
     let p1 = execute(&instructions, false);
     let p2 = execute(&instructions, true);
 
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }

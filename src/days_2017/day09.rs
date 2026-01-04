@@ -14,20 +14,32 @@ pub fn solve(input: &str) -> Solution {
             cancel_next = false;
         } else if in_garbage {
             match c {
-                '!' => { cancel_next = true; },
-                '>' => { in_garbage = false; },
-                _ => { p2 += 1; },
+                '!' => {
+                    cancel_next = true;
+                }
+                '>' => {
+                    in_garbage = false;
+                }
+                _ => {
+                    p2 += 1;
+                }
             }
         } else {
             match c {
-                '{' => { level += 1; p1 += level; },
-                '}' => { level -= 1; },
-                '<' => { in_garbage = true; },
-                _ => {},
+                '{' => {
+                    level += 1;
+                    p1 += level;
+                }
+                '}' => {
+                    level -= 1;
+                }
+                '<' => {
+                    in_garbage = true;
+                }
+                _ => {}
             }
         }
-
     }
 
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }

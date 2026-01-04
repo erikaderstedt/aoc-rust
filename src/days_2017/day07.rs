@@ -32,9 +32,7 @@ impl<'a> Program<'a> {
             for t in self.top.iter() {
                 let p = programs.iter().find(|p| p.base == *t).unwrap();
                 match p.check(programs) {
-                    CheckResult::Difference(x) => {
-                        return CheckResult::Difference(x)
-                    },
+                    CheckResult::Difference(x) => return CheckResult::Difference(x),
                     CheckResult::TotalWeight(tw) => {
                         weights.push(tw);
                     }
@@ -54,8 +52,10 @@ impl<'a> Program<'a> {
                     .next()
                     .unwrap();
 
-                let should_have_been = weights.iter().zip(self.top.iter())
-                    .filter(|(w,_)| **w != correct_weight)
+                let should_have_been = weights
+                    .iter()
+                    .zip(self.top.iter())
+                    .filter(|(w, _)| **w != correct_weight)
                     .map(|(w, t)| {
                         let p = programs.iter().find(|p| p.base == *t).unwrap();
                         p.weight + correct_weight - w
@@ -65,24 +65,32 @@ impl<'a> Program<'a> {
 
                 CheckResult::Difference(should_have_been)
             }
-
         }
     }
 }
 
 pub fn solve(input: &str) -> Solution {
-
-    let programs: Vec<Program> = input.lines().map(|line| {
-        let parts: Vec<&str> = line.split(' ').collect();
-        let base = parts[0];
-        let weight = parts[1][1..(parts[1].len()-1)].parse::<i64>().unwrap();
-        if let Some(s) = line.split(" -> ").skip(1).next() {
-            Program { base, weight, top: s.split(", ").collect() }
-        } else {
-            Program { base, weight, top: vec![] }            
-        }
-    })
-    .collect();
+    let programs: Vec<Program> = input
+        .lines()
+        .map(|line| {
+            let parts: Vec<&str> = line.split(' ').collect();
+            let base = parts[0];
+            let weight = parts[1][1..(parts[1].len() - 1)].parse::<i64>().unwrap();
+            if let Some(s) = line.split(" -> ").skip(1).next() {
+                Program {
+                    base,
+                    weight,
+                    top: s.split(", ").collect(),
+                }
+            } else {
+                Program {
+                    base,
+                    weight,
+                    top: vec![],
+                }
+            }
+        })
+        .collect();
 
     let p1 = programs
         .iter()
@@ -93,7 +101,8 @@ pub fn solve(input: &str) -> Solution {
                 Some(program.base)
             }
         })
-        .unwrap().to_string();
+        .unwrap()
+        .to_string();
 
     let base_program = programs.iter().find(|p| p.base == p1.as_str()).unwrap();
 
@@ -102,5 +111,5 @@ pub fn solve(input: &str) -> Solution {
         CheckResult::TotalWeight(_) => panic!("Could not find imbalance"),
     };
 
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }

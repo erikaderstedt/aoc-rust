@@ -4,7 +4,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use itertools::Itertools;
 
-use crate::common::{Solution, parsed_from_each_line};
+use crate::common::{parsed_from_each_line, Solution};
 
 enum Operation {
     Increase,
@@ -61,10 +61,11 @@ pub fn solve(input: &str) -> Solution {
     let mut p1 = 0;
     let mut p2 = 0;
     for line in lines.iter() {
-        let value1 = registers
-            .get(&line.conditional_operand_1)
-            .unwrap_or(&0);
-        if line.comparison.evaluate(*value1, line.conditional_operand_2) {
+        let value1 = registers.get(&line.conditional_operand_1).unwrap_or(&0);
+        if line
+            .comparison
+            .evaluate(*value1, line.conditional_operand_2)
+        {
             if let Some(r) = registers.get_mut(&line.operand1) {
                 *r = line.operation.evaluate(*r, line.operand2)
             } else {
@@ -72,10 +73,12 @@ pub fn solve(input: &str) -> Solution {
             }
         }
         p1 = registers.values().max().unwrap().clone();
-        if p2 < p1 { p2 = p1; }
+        if p2 < p1 {
+            p2 = p1;
+        }
     }
 
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }
 
 impl FromStr for Comparison {
@@ -89,10 +92,9 @@ impl FromStr for Comparison {
             "<=" => Ok(Self::LessThanOrEqual),
             "==" => Ok(Self::Equal),
             "!=" => Ok(Self::NotEqual),
-            _ => Err("Unknown comparison operation")
+            _ => Err("Unknown comparison operation"),
         }
     }
-    
 }
 
 impl FromStr for Operation {
@@ -102,16 +104,15 @@ impl FromStr for Operation {
         match s {
             "inc" => Ok(Self::Increase),
             "dec" => Ok(Self::Decrease),
-            _ => Err("Unknwon increase/decrease operation")
+            _ => Err("Unknwon increase/decrease operation"),
         }
     }
-    
 }
 
 fn register_from_str(s: &str) -> Register {
-    s.as_bytes().iter().fold(0, |acc, v| {
-        (acc << 8) + (*v as u32)
-    })
+    s.as_bytes()
+        .iter()
+        .fold(0, |acc, v| (acc << 8) + (*v as u32))
 }
 
 impl FromStr for Line {
@@ -125,7 +126,13 @@ impl FromStr for Line {
         let conditional_operand_2 = op3.parse().map_err(|_| "Invalid operand 3")?;
         let operand1 = register_from_str(reg);
         let conditional_operand_1 = register_from_str(reg2);
-        Ok(Self { operand1, operation, operand2, conditional_operand_1, comparison, conditional_operand_2 })
+        Ok(Self {
+            operand1,
+            operation,
+            operand2,
+            conditional_operand_1,
+            comparison,
+            conditional_operand_2,
+        })
     }
-    
 }

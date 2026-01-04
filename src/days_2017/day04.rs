@@ -6,12 +6,12 @@ fn is_anagram(s1: &str, s2: &str) -> bool {
     if s1.len() != s2.len() {
         return false;
     }
-    if s1 == s2 { 
+    if s1 == s2 {
         return true;
     }
     let mut b1: Vec<u8> = s1.chars().map(|c| c as u8).collect();
     let mut b2: Vec<u8> = s2.chars().map(|c| c as u8).collect();
-    
+
     if b1.iter().sum::<u8>() != b2.iter().sum::<u8>() {
         return false;
     }
@@ -33,26 +33,24 @@ pub fn solve(input: &str) -> Solution {
 
     let p1 = passphrases
         .iter()
-        .filter(|passphrase| 
+        .filter(|passphrase| {
             passphrase
                 .iter()
-                .all(|&word1| 
-                    passphrase
-                        .iter()
-                        .filter(|word2| word1 == **word2)
-                        .count() == 1))
+                .all(|&word1| passphrase.iter().filter(|word2| word1 == **word2).count() == 1)
+        })
         .count();
 
     let p2 = passphrases
         .iter()
-        .filter(|passphrase| 
-            passphrase
-                .iter()
-                .all(|&word1| 
-                    passphrase
-                        .iter()
-                        .filter(|word2| is_anagram(word1, **word2))
-                        .count() == 1))
+        .filter(|passphrase| {
+            passphrase.iter().all(|&word1| {
+                passphrase
+                    .iter()
+                    .filter(|word2| is_anagram(word1, **word2))
+                    .count()
+                    == 1
+            })
+        })
         .count();
-    Solution::new(p1,p2)
+    Solution::new(p1, p2)
 }
