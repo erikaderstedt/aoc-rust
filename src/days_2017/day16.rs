@@ -1,4 +1,4 @@
-// https://adventofcode.com/2078/day/1
+// https://adventofcode.com/2017/day/16
 
 use crate::common::Solution;
 use itertools::Itertools;
