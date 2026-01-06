@@ -1,20 +1,129 @@
-// https://adventofcode.com/2015/day/5
+// https://adventofcode.com/2015/day/7
 
 use crate::common::Solution;
-use crate::common::parsed_from_each_line;
-use itertools::Itertools;
-use std::str::FromStr;
 use std::collections::HashMap;
-use regex::Regex;
+use std::str::FromStr;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 enum Operation {
     And,
     Or,
     Lshift,
     Rshift,
     Not,
+    Set,
 }
+
+#[derive(Debug, PartialEq)]
+enum Operand {
+    Literal(u16),
+    Wire(String),
+}
+
+#[derive(Debug, PartialEq)]
+struct Connection {
+    operation: Operation,
+    left: Option<Operand>,
+    right: Operand,
+}
+
+impl Operand {
+    fn value(&self, wires: &HashMap<String, u16>) -> Option<u16> {
+        match self {
+            Self::Literal(x) => Some(x.clone()),
+            Self::Wire(s) => wires.get(s).cloned(),
+        }
+    }
+}
+
+impl Connection {
+    fn prerequisites_ok(&self, wires: &HashMap<String, u16>) -> bool {
+        self.right.value(wires).is_some()
+            && if let Some(left) = &self.left {
+                left.value(wires).is_some()
+            } else {
+                true
+            }
+    }
+
+    fn evaluate(&self, wires: &HashMap<String, u16>) -> u16 {
+        let right = self.right.value(wires).unwrap();
+        let left = if let Some(l) = &self.left {
+            l.value(wires).unwrap_or(0)
+        } else {
+            0
+        };
+        match self.operation {
+            Operation::Not => !right,
+            Operation::Set => right,
+            Operation::Lshift => left << right,
+            Operation::Rshift => left >> right,
+            Operation::And => left & right,
+            Operation::Or => left | right,
+        }
+    }
+}
+
+fn run(setup: &Vec<(Connection, String)>, mut wires: HashMap<String, u16>) -> u16 {
+    while let Some((connection, output)) = setup
+        .iter()
+        .find(|(c, s)| !wires.contains_key(s) && c.prerequisites_ok(&wires))
+    {
+        let result = connection.evaluate(&wires);
+        wires.insert(output.clone(), result);
+    }
+
+    wires.get(&"a".to_string()).unwrap().clone()
+}
+
+pub fn solve(input: &str) -> Solution {
+    let setup: Vec<(Connection, String)> = input
+        .lines()
+        .map(|line| {
+            let (a, b) = line.split_once(" -> ").unwrap();
+            (a.parse().unwrap(), b.to_string())
+        })
+        .collect();
+
+    let p1 = run(&setup, HashMap::new());
+    let mut m = HashMap::new();
+    m.insert("b".to_string(), p1.clone());
+    let p2 = run(&setup, m);
+    Solution::new(p1, p2)
+}
+
+impl FromStr for Connection {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<&str> = s.split(' ').collect();
+        if parts.len() == 1 {
+            let right = parts[0].parse()?;
+            Ok(Connection {
+                operation: Operation::Set,
+                left: None,
+                right,
+            })
+        } else if parts.len() == 2 {
+            let right = parts[1].parse()?;
+            Ok(Connection {
+                operation: Operation::Not,
+                left: None,
+                right,
+            })
+        } else {
+            let operation = parts[1].parse()?;
+            let left = parts[0].parse()?;
+            let right = parts[2].parse()?;
+            Ok(Connection {
+                operation,
+                left: Some(left),
+                right,
+            })
+        }
+    }
+}
+
 impl FromStr for Operation {
     type Err = &'static str;
 
@@ -25,14 +134,9 @@ impl FromStr for Operation {
             "LSHIFT" => Ok(Operation::Lshift),
             "RSHIFT" => Ok(Operation::Rshift),
             "NOT" => Ok(Operation::Not),
-            _ => Err("Unknown operation")
+            _ => Err("Unknown operation"),
         }
     }
-}
-#[derive(Debug,PartialEq)]
-enum Operand {
-    Literal(u16),
-    Wire(String),
 }
 
 impl FromStr for Operand {
@@ -44,78 +148,4 @@ impl FromStr for Operand {
             Err(_) => Ok(Operand::Wire(s.to_string())),
         }
     }
-}
-#[derive(Debug,PartialEq)]
-struct Connection {
-    operation: Operation,
-    left: Option<Operand>,
-    right: Operand,
-}
-
-impl Connection {
-    fn evaluate(&self) -> Option<u16> {
-        match self.right {
-            Operand::Literal(r) => match self.left {
-                Some(Operand::Literal(l)) => Some(match self.operation {
-                    Operation::And => l & r,
-                    Operation::Or => l | r,
-                    Operation::Lshift => l << r,
-                    Operation::Rshift => l >> r,
-                    Operation::Not => panic!("NOT operation should not have a left operand."),
-                }),
-                Some(Operand::Wire(_)) => None,
-                None => Some(match self.operation {
-                    Operation::Not => !r,
-                    _ => panic!("Operation {:?} should have a left operand", self.operation),
-                })},
-            _ => None,
-        }
-    }
-}
-#[derive(Debug,PartialEq)]
-enum Value {
-    Literal(u16),
-    Connection(Connection),
-}
-
-
-pub fn solve(input: &str) -> Solution {
-    // Deal with literals
-    let mut instructions: HashMap<String, Value> = HashMap::new();
-    let r = Regex::new("([a-z0-9]+)? ?(AND|NOT|OR|RSHIFT|LSHIFT)? ?([a-z0-9]+) -> ([a-z]+)").unwrap();
-
-    for line in input.lines() {
-
-        match r.captures(line) {
-            None => panic!("Unable to match line {}", line),
-            Some(c) => {
-                let w = c.get(4).unwrap().as_str().to_string();
-                instructions.insert(w, match c.get(2) {
-                    None => Value::Literal(c.get(3).unwrap().as_str().parse::<u16>().unwrap()), 
-                    Some(m) => Value::Connection( {
-                        let operation = m.as_str().parse::<Operation>().unwrap();
-                        let right = c.get(3).unwrap().as_str().parse::<Operand>().unwrap();
-                        if operation == Operation::Not {
-                            Connection { operation, left: None, right}
-                        } else {
-                            let left = Some(c.get(1).unwrap().as_str().parse::<Operand>().unwrap());
-                            Connection { operation, left, right}
-                    }}),
-                });
-            }
-        }
-
-    }
-    // loop through instructions where the values are 
-    for (wire_name, value) in instructions.iter_mut() {
-        match value {
-            Value::Connection(c) => {
-                if c.evaluate()
-            }
-        }
-    }.filter(|(_, v)| match v { Value::Connection(_) => true, _ => false}) {
-
-    }
-println!("{:?}", instructions);
-    Solution::new(0, 0)
 }
