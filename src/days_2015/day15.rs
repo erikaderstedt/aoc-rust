@@ -19,6 +19,7 @@ const TARGET_CALORIES: i64 = 500;
 fn gradient_search_for_best_recipe(ingredients: &[Ingredient; 4]) -> i64 {
     let mut rng = rand::rng();
 
+    // Find any valid solution at random.
     let mut values = [TOTAL / 4; 4];
     while result(&values, &ingredients) == 0 {
         values[0] = rng.random_range(0..TOTAL);
@@ -60,6 +61,9 @@ fn gradient_search_for_best_recipe(ingredients: &[Ingredient; 4]) -> i64 {
         values[*j as usize] -= 1;
         let r = result(&values, &ingredients);
         if r < best {
+            // No more improvement. We are at a local maximum,
+            // and there should be only one maximum given the problem
+            // formulation.
             break best;
         } else {
             best = r;
@@ -69,14 +73,14 @@ fn gradient_search_for_best_recipe(ingredients: &[Ingredient; 4]) -> i64 {
 
 pub fn solve(input: &str) -> Solution {
     let r = Regex::new(
-        "^(\\w+): capacity (-?\\d+), durability (-?\\d+), flavor (-?\\d+), texture (-?\\d+), calories (-?\\d+)"
+        "^\\w+: capacity (-?\\d+), durability (-?\\d+), flavor (-?\\d+), texture (-?\\d+), calories (-?\\d+)"
     )
     .unwrap();
 
     let ingredients: [Ingredient; 4] = input
         .lines()
         .map(|line| {
-            let (_, [_, capacity, durability, flavor, texture, calories]) =
+            let (_, [capacity, durability, flavor, texture, calories]) =
                 r.captures(line).unwrap().extract();
             Ingredient {
                 capacity: capacity.parse::<i64>().unwrap(),

@@ -1,11 +1,39 @@
-// https://adventofcode.com/2015/day/11
+// https://adventofcode.com/2015/day/17
 
 use crate::common::Solution;
+use itertools::Itertools;
 
-pub fn solve(_input: &str) -> Solution {
+const TARGET: i64 = 150;
 
-    let p1 = 0;
-    let p2 = 0;
+pub fn solve(input: &str) -> Solution {
+    let containers: Vec<i64> = input
+        .lines()
+        .map(|line| line.parse::<i64>().unwrap())
+        .collect();
+
+    let p1 = (0..containers.len())
+        .map(|k| {
+            containers
+                .iter()
+                .combinations(k)
+                .filter(|c| c.iter().cloned().sum::<i64>() == TARGET)
+                .count()
+        })
+        .sum::<usize>();
+    let p2 = (0..containers.len())
+        .find_map(|k| {
+            let num = containers
+                .iter()
+                .combinations(k)
+                .filter(|c| c.iter().cloned().sum::<i64>() == TARGET)
+                .count();
+            if num > 0 {
+                Some(num)
+            } else {
+                None
+            }
+        })
+        .unwrap();
 
     Solution::new(p1, p2)
 }
