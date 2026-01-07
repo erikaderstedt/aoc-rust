@@ -1,4 +1,4 @@
-// https://adventofcode.com/2021/day/3
+// https://adventofcode.com/2015/day/2
 
 use crate::common::Solution;
 use crate::common::parsed_from_each_line;

@@ -1,4 +1,4 @@
-// https://adventofcode.com/2015/day/3
+// https://adventofcode.com/2015/day/4
 
 use crate::common::Solution;
 use md5;
