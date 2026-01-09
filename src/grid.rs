@@ -735,6 +735,19 @@ pub fn read_characters_off_grid<const M: usize, const N: usize, const S: usize>(
                         '?'
                     }
                 },
+                24 => match v {
+                    0x00F1248F => 'Z',
+                    0x0011171F => 'F',
+                    0x00999F99 => 'H',
+                    0x0078611E => 'S',
+                    0x00699996 => 'O',
+                    0x00E9D196 => 'G',
+                    0x00117997 => 'P',
+                    _ => {
+                        println!("Unrecognized character, value 0x{:08X}", v);
+                        '?'
+                    }
+                },
                 30 => match v {
                     0x1297A526 => 'A',
                     0x0E949D27 => 'B',
